@@ -1,7 +1,7 @@
 import re
 import logging
 import httpx
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
@@ -50,7 +50,7 @@ def fetch_html_with_selenium(url: str) -> str:
 
 # 🔎 Detecta o site de origem
 @app.get("/detect-site/")
-async def detect_site(url: str = Query(..., description="URL do imóvel")):
+async def detect_site(url: str):
     match = re.search(r"https?://(?:www\.)?([^/]+)", url)
     if match:
         return {"site": match.group(1)}
@@ -58,8 +58,9 @@ async def detect_site(url: str = Query(..., description="URL do imóvel")):
 
 # 🌍 Busca o HTML da página
 @app.get("/fetch-html/")
-async def fetch_property_info(property_code: str = Query(..., description="Código do imóvel")):
-    xml_url = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afecd2c0b"
+async def fetch_property_info(property_code: str):
+    """Busca informações do imóvel no XML fixo usando o código do imóvel."""
+    XML_URL = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afecd2c0b"
 
     try:
         response = httpx.get(XML_URL)
@@ -168,3 +169,6 @@ async def extract_url_from_message(message: str):
         return {"url": url_match.group(1)}
     
     raise HTTPException(status_code=400, detail="Nenhuma URL encontrada na mensagem.")
+
+
+
