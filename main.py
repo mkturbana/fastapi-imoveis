@@ -5,9 +5,6 @@ import logging
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 
 chrome_options = Options()
 chrome_options.binary_location = os.environ.get("CHROME_BIN")
