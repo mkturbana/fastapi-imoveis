@@ -1,4 +1,12 @@
 import os
+
+# Define os caminhos para o Chrome
+os.environ["CHROME_BIN"] = "/opt/render/chrome/opt/google/chrome/chrome"
+os.environ["CHROMEDRIVER_PATH"] = "/opt/render/.local/chromedriver/chromedriver"
+
+# Adiciona ao PATH
+os.environ["PATH"] += os.pathsep + "/opt/render/chromedriver"
+
 import re
 import logging
 import httpx
@@ -9,14 +17,6 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 from fastapi import HTTPException  # Certifique-se de importar HTTPException
-
-# Define os caminhos para o Chrome
-os.environ["CHROME_BIN"] = "/opt/render/chrome/opt/google/chrome/chrome"
-os.environ["CHROMEDRIVER_PATH"] = "/opt/render/.local/chromedriver/chromedriver"
-os.environ["PATH"] += os.pathsep + "/opt/render/chromedriver"
-
-# Adiciona ao PATH
-os.environ["PATH"] += os.pathsep + "/usr/local/bin"
 
 app = FastAPI()
 
