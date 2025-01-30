@@ -1,19 +1,18 @@
 #!/bin/bash
 
-export TERM=xterm-256color
+set -eux  # Ativa modo de depuração e falha ao encontrar erros
 
-echo "🚀 Configurando ambiente para Chrome e ChromeDriver..."
+echo "🔄 Atualizando pacotes..."
+apt-get update && apt-get upgrade -y
 
-# Baixa o ChromeDriver correto
-mkdir -p /opt/render/chromedriver
-cd /opt/render/chromedriver
-curl -LO https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux64/chromedriver-linux64.zip
-unzip chromedriver-linux64.zip
-mv chromedriver-linux64/chromedriver /opt/render/chromedriver/
-chmod +x /opt/render/chromedriver/chromedriver
+echo "📦 Instalando dependências necessárias..."
+apt-get install -y curl unzip wget libnss3 libatk1.0-0 libx11-xcb1 libxcb-dri3-0 libxcomposite1 libxdamage1 \
+                   libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcups2 libdrm2 libasound2 libxshmfence1 \
+                   libgtk-3-0 libxinerama1 libegl1
 
-# Define variáveis de ambiente para o Selenium
-export CHROME_BIN="/usr/bin/google-chrome"
-export PATH="$PATH:/opt/render/chromedriver"
+echo "🚀 Instalando Playwright e seus navegadores..."
+pip install --upgrade pip
+pip install playwright
+playwright install chromium
 
-echo "✅ Configuração concluída!"
+echo "✅ Build concluído! Pronto para iniciar o servidor."
