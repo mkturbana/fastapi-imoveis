@@ -19,8 +19,8 @@ chrome_options.add_argument("--headless")  # Modo sem interface gráfica
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 
-service = Service("/opt/render/chromedriver/chromedriver")  # Usa o ChromeDriver correto
-driver = webdriver.Chrome(service=service, options=chrome_options)
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service)
 
 app = FastAPI()
 
