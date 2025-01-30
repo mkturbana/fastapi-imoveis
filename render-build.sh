@@ -1,28 +1,41 @@
 #!/bin/bash
 
-echo "Iniciando configuração do ambiente..."
+echo "🚀 Iniciando configuração do ambiente..."
 
-# Criar diretório para Chrome e WebDriver
-mkdir -p /opt/google/chrome
-mkdir -p /opt/webdriver
+# Criar diretórios para armazenar os binários
+mkdir -p /opt/chrome /opt/chromedriver
 
-# Baixar e instalar o Chrome portátil
-echo "Baixando Google Chrome portátil..."
-curl -o /opt/google/chrome/google-chrome-stable_current_amd64.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-dpkg -x /opt/google/chrome/google-chrome-stable_current_amd64.deb /opt/google/chrome/
+# Baixar Google Chrome portátil
+echo "🔽 Baixando Google Chrome..."
+curl -Lo /opt/chrome/chrome.zip "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
 
-# Definir permissões corretas para execução
-chmod +x /opt/google/chrome/opt/google/chrome/google-chrome
+# Extrair o Chrome
+dpkg -x /opt/chrome/chrome.zip /opt/chrome/
 
-# Criar link simbólico para facilitar acesso ao binário do Chrome
-ln -sf /opt/google/chrome/opt/google/chrome/google-chrome /usr/local/bin/google-chrome
+# Criar link simbólico para facilitar a execução
+ln -sf /opt/chrome/opt/google/chrome/google-chrome /usr/local/bin/google-chrome
+
+# Baixar e instalar o ChromeDriver
+echo "🔽 Baixando ChromeDriver..."
+CHROMEDRIVER_VERSION=$(curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE)
+curl -Lo /opt/chromedriver/chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+
+# Extrair ChromeDriver
+unzip /opt/chromedriver/chromedriver.zip -d /opt/chromedriver/
+
+# Tornar o ChromeDriver executável
+chmod +x /opt/chromedriver/chromedriver
+
+# Criar link simbólico do ChromeDriver
+ln -sf /opt/chromedriver/chromedriver /usr/local/bin/chromedriver
 
 # Instalar dependências do Python
-echo "Instalando dependências do Python..."
+echo "🐍 Instalando dependências do Python..."
 pip install --no-cache-dir -r requirements.txt
 
-# Verificar se o Chrome e WebDriver estão disponíveis
-echo "Verificando instalação..."
-/usr/local/bin/google-chrome --version
+# Verificar instalações
+echo "✅ Verificando instalação..."
+google-chrome --version
+chromedriver --version
 
-echo "Configuração concluída com sucesso!"
+echo "🎉 Configuração concluída com sucesso!"
