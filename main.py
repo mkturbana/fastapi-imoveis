@@ -1,22 +1,26 @@
 import os
 
 # Define o caminho para o Chrome portátil e ChromeDriver
-os.environ["CHROME_BIN"] = "/opt/render/chrome/google-chrome"
-os.environ["PATH"] += os.pathsep + "/opt/render/chromedriver"
-
-# Adiciona ao PATH
+os.environ["CHROME_BIN"] = "/opt/render/chrome/google-chrome"  # Caminho correto no Render
 os.environ["PATH"] += os.pathsep + "/opt/render/chromedriver"
 
 import re
 import logging
 import httpx
+from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from bs4 import BeautifulSoup
-from fastapi import HTTPException  # Certifique-se de importar HTTPException
+
+chrome_options = Options()
+chrome_options.binary_location = os.environ.get("CHROME_BIN")
+chrome_options.add_argument("--headless")  # Modo sem interface gráfica
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+
+service = Service("/opt/render/chromedriver/chromedriver")  # Usa o ChromeDriver correto
+driver = webdriver.Chrome(service=service, options=chrome_options)
 
 app = FastAPI()
 
