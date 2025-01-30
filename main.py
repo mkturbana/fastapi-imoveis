@@ -4,9 +4,11 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
+from fastapi import HTTPException  # Certifique-se de importar HTTPException
+
 
 app = FastAPI()
 
@@ -114,8 +116,10 @@ def fetch_html_with_selenium(url: str) -> str:
     service = ChromeService(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
 
-try:
+ # Define tempo máximo de carregamento
+    driver.set_page_load_timeout(30)
 
+try:
     driver.get(url)
     html = driver.page_source
 
@@ -124,15 +128,15 @@ try:
         raise HTTPException(status_code=403, detail="O site bloqueou o acesso via Selenium.")
 
     # Salva o HTML localmente para reutilização
-        with open("pagina.html", "w", encoding="utf-8") as f:
-            f.write(html)
+    with open("pagina.html", "w", encoding="utf-8") as f:
+        f.write(html)
 
-        return html  # Retorna o HTML capturado
+    return html  # Retorna o HTML capturado
 
-    except Exception as e:
-        print(f"Erro ao capturar HTML: {e}")
-        return ""
+except Exception as e:
+    print(f"Erro ao capturar HTML: {e}")
+    return ""
 
-    finally:
-        driver.quit()  # Fecha o navegador para evitar processos em aberto
-
+finally:
+    if driver:
+         driver.quit()  # Fecha o navegador para evitar processos em aberto
