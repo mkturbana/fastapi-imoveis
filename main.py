@@ -88,7 +88,7 @@ async def fetch_property_info(property_code: str):
 
         property_info = soup.find("ListingID", string=property_code)
         if not property_info:
-            raise HTTPException(status_code=404, detail="Não consegui encontrar os dados da imobiliária. Vou transferir você para um atendente humano.")
+            raise HTTPException(status_code=404, detail="Imóvel não encontrado no XML.")
 
         return {"codigo_imovel": property_code}
 
@@ -96,6 +96,7 @@ async def fetch_property_info(property_code: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 # 🏡 Função interna para buscar HTML com Selenium (agora chamada dentro de /extract-code/)
+
 def fetch_html_with_selenium(url: str) -> str:
     options = Options()
     options.add_argument("--headless")
@@ -113,13 +114,25 @@ def fetch_html_with_selenium(url: str) -> str:
     service = ChromeService(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
 
+try:
+
     driver.get(url)
     html = driver.page_source
-
-    driver.quit()
 
     # Verifica se houve bloqueio
     if "Acesso negado" in html or "Verifique que você não é um robô" in html:
         raise HTTPException(status_code=403, detail="O site bloqueou o acesso via Selenium.")
 
-    return html
+    # Salva o HTML localmente para reutilização
+        with open("pagina.html", "w", encoding="utf-8") as f:
+            f.write(html)
+
+        return html  # Retorna o HTML capturado
+
+    except Exception as e:
+        print(f"Erro ao capturar HTML: {e}")
+        return ""
+
+    finally:
+        driver.quit()  # Fecha o navegador para evitar processos em aberto
+
