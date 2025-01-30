@@ -8,5 +8,7 @@ pip install playwright
 
 echo "🌍 Baixando navegadores Playwright..."
 playwright install chromium
+playwright install --with-deps
+
 
 echo "✅ Configuração concluída!"
