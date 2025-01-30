@@ -1,16 +1,17 @@
+FROM python:3.11-slim
+
+# Instala o Google Chrome e o ChromeDriver
 RUN apt-get update && apt-get install -y \
-    wget \
-    curl \
-    unzip \
-    libx11-xcb1 \
-    libxcb-dri3-0 \
-    libgbm1 \
-    libasound2 \
-    libxshmfence1 \
-    libegl1 \
-    && wget -O /usr/local/bin/chromedriver https://chromedriver.storage.googleapis.com/$(curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip \
-    && unzip /usr/local/bin/chromedriver -d /usr/local/bin/ \
-    && chmod +x /usr/local/bin/chromedriver \
-    && wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
-    && apt-get update && apt-get install -y google-chrome-stable
+    google-chrome-stable \
+    chromium-driver \
+    && rm -rf /var/lib/apt/lists/*
+
+# Define variáveis de ambiente para o Selenium
+ENV CHROME_BIN=/usr/bin/google-chrome
+ENV PATH="$PATH:/usr/bin/"
+
+WORKDIR /app
+COPY . /app
+RUN pip install -r requirements.txt
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
