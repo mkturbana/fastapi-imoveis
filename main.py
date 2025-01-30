@@ -11,8 +11,8 @@ from bs4 import BeautifulSoup
 from fastapi import HTTPException  # Certifique-se de importar HTTPException
 
 # Define o caminho para o Chrome portátil
-os.environ["CHROME_BIN"] = "/usr/local/bin/google-chrome"
-os.environ["PATH"] += os.pathsep + "/usr/local/bin"
+os.environ["CHROME_BIN"] = "/opt/google/chrome/google-chrome"
+os.environ["PATH"] += os.pathsep + "/opt/google/chrome"
 
 app = FastAPI()
 
