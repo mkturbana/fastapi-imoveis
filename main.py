@@ -40,22 +40,20 @@ async def detect_site(url: str):
 # 3️⃣ 🔢 Extrai código do imóvel e captura HTML automaticamente com Selenium
 
 @app.get("/extract-code/")
-async def extract_property_code(url_anuncio: str, site_detectado: str)
-
+async def extract_property_code(url_anuncio: str, site_detectado: str):
     """Captura o HTML da página e extrai o código do imóvel."""
-    
-    # 🔹 1️⃣ Captura o HTML usando Selenium
 
-    html = fetch_html_with_selenium(url)
+    # 📩 Captura o HTML usando Selenium
+    html = fetch_html_with_selenium(url_anuncio)
     soup = BeautifulSoup(html, "html.parser")
 
-      property_code = None
+    property_code = None
 
     if "imovelweb.com.br" in site_detectado:
         match = re.search(r'publisher_house_id\s*=\s*"([\w-]+)"', html)
         property_code = match.group(1) if match else None
 
-    elif "chavesnamao.com.br" site_detectado:
+    elif "chavesnamao.com.br" in site_detectado:
         match = re.search(r'Ref:\s*<!--\s*-->\s*([\w-]+)', html)
         property_code = match.group(1) if match else None
 
@@ -69,10 +67,11 @@ async def extract_property_code(url_anuncio: str, site_detectado: str)
         match = re.search(r'(ID[:.\s]*\d+|Código[:.\s]*\d+|ref[:.\s]*\d+)', html)
         property_code = match.group(1) if match else None
 
+    # 🔍 Se nenhum código for encontrado, retorna erro 404
     if not property_code:
         raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
 
-    return {"codigo_imovel": property_code}
+    return {"codigo_imovel": property_code}  # 🔹 Retorno dentro da função
 
 # 4️⃣ 📄 Busca informações do imóvel no XML
 
@@ -115,27 +114,26 @@ def fetch_html_with_selenium(url: str) -> str:
     service = ChromeService(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
 
- # Define tempo máximo de carregamento
+    # Define tempo máximo de carregamento
     driver.set_page_load_timeout(30)
 
-try:
-    driver.get(url)
-    html = driver.page_source
+    try:
+        driver.get(url)
+        html = driver.page_source
 
-    # Verifica se houve bloqueio
-    if "Acesso negado" in html or "Verifique que você não é um robô" in html:
-        raise HTTPException(status_code=403, detail="O site bloqueou o acesso via Selenium.")
+        # Verifica se houve bloqueio
+        if "Acesso negado" in html or "Verifique que você não é um robô" in html:
+            raise HTTPException(status_code=403, detail="O site bloqueou o acesso via Selenium.")
 
-    # Salva o HTML localmente para reutilização
-    with open("pagina.html", "w", encoding="utf-8") as f:
-        f.write(html)
+        # Salva o HTML localmente para reutilização
+        with open("pagina.html", "w", encoding="utf-8") as f:
+            f.write(html)
 
-    return html  # Retorna o HTML capturado
+        return html  # Retorna o HTML capturado
 
-except Exception as e:
-    print(f"Erro ao capturar HTML: {e}")
-    return ""
+    except Exception as e:
+        print(f"Erro ao capturar HTML: {e}")
+        return ""
 
-finally:
-    if driver:
-         driver.quit()  # Fecha o navegador para evitar processos em aberto
+    finally:
+        driver.quit()  # Fecha o navegador para evitar processos em aberto
