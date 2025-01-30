@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export TERM=xterm-256color
+
 echo "🚀 Configurando ambiente para Chrome e ChromeDriver..."
 
 # Baixa o ChromeDriver correto
@@ -15,5 +17,3 @@ export CHROME_BIN="/usr/bin/google-chrome"
 export PATH="$PATH:/opt/render/chromedriver"
 
 echo "✅ Configuração concluída!"
-
-
