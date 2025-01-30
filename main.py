@@ -40,32 +40,31 @@ async def detect_site(url: str):
 # 3️⃣ 🔢 Extrai código do imóvel e captura HTML automaticamente com Selenium
 
 @app.get("/extract-code/")
-async def extract_property_code(url: str, site: str):
+async def extract_property_code(url_anuncio: str, site_detectado: str)
 
     """Captura o HTML da página e extrai o código do imóvel."""
     
     # 🔹 1️⃣ Captura o HTML usando Selenium
 
     html = fetch_html_with_selenium(url)
-
     soup = BeautifulSoup(html, "html.parser")
 
-    # 🔹 2️⃣ Identifica o site antes de extrair o código
+      property_code = None
 
-    site = site
-    property_code = None
-
-    if "imovelweb.com.br" in site:
+    if "imovelweb.com.br" in site_detectado:
         match = re.search(r'publisher_house_id\s*=\s*"([\w-]+)"', html)
         property_code = match.group(1) if match else None
-    elif "chavesnamao.com.br" in site:
+
+    elif "chavesnamao.com.br" site_detectado:
         match = re.search(r'Ref:\s*<!--\s*-->\s*([\w-]+)', html)
         property_code = match.group(1) if match else None
-    elif "buscacuritiba.com.br" in site:
+
+    elif "buscacuritiba.com.br" in site_detectado:
         reference_element = soup.find("p", string=re.compile("Referência:", re.IGNORECASE))
         if reference_element:
             strong_tag = reference_element.find("strong")
             property_code = strong_tag.text.strip() if strong_tag else None
+
     else:
         match = re.search(r'(ID[:.\s]*\d+|Código[:.\s]*\d+|ref[:.\s]*\d+)', html)
         property_code = match.group(1) if match else None
