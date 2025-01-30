@@ -10,9 +10,12 @@ from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 from fastapi import HTTPException  # Certifique-se de importar HTTPException
 
-# Define o caminho para o Chrome portátil
-os.environ["CHROME_BIN"] = "/opt/google/chrome/google-chrome"
-os.environ["PATH"] += os.pathsep + "/opt/google/chrome"
+# Define os caminhos para o Chrome e o ChromeDriver manualmente
+os.environ["CHROME_BIN"] = "/usr/local/bin/google-chrome"
+os.environ["CHROMEDRIVER_PATH"] = "/usr/local/bin/chromedriver"
+
+# Adiciona ao PATH
+os.environ["PATH"] += os.pathsep + "/usr/local/bin"
 
 app = FastAPI()
 
