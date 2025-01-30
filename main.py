@@ -1,8 +1,9 @@
 import os
 
-# Define os caminhos para o Chrome
-os.environ["CHROME_BIN"] = "/opt/render/chrome/opt/google/chrome/chrome"
-os.environ["CHROMEDRIVER_PATH"] = "/opt/render/.local/chromedriver/chromedriver"
+# Define o caminho para o Chrome portátil e ChromeDriver
+os.environ["CHROME_BIN"] = "/opt/render/chrome/google-chrome"
+os.environ["PATH"] += os.pathsep + "/opt/render/chromedriver"
+
 
 # Adiciona ao PATH
 os.environ["PATH"] += os.pathsep + "/opt/render/chromedriver"
