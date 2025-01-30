@@ -1,3 +1,4 @@
+import os
 import re
 import logging
 import httpx
@@ -9,6 +10,9 @@ from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 from fastapi import HTTPException  # Certifique-se de importar HTTPException
 
+# Define o caminho para o Chrome portátil
+os.environ["CHROME_BIN"] = "/usr/local/bin/google-chrome"
+os.environ["PATH"] += os.pathsep + "/usr/local/bin"
 
 app = FastAPI()
 
