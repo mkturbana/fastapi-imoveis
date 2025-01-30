@@ -4,7 +4,6 @@ import os
 os.environ["CHROME_BIN"] = "/opt/render/chrome/google-chrome"
 os.environ["PATH"] += os.pathsep + "/opt/render/chromedriver"
 
-
 # Adiciona ao PATH
 os.environ["PATH"] += os.pathsep + "/opt/render/chromedriver"
 
