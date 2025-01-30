@@ -11,9 +11,9 @@ from bs4 import BeautifulSoup
 from fastapi import HTTPException  # Certifique-se de importar HTTPException
 
 # Define os caminhos para o Chrome
-os.environ["CHROME_BIN"] = "/opt/render/.local/chrome/chrome"
+os.environ["CHROME_BIN"] = "/opt/render/chrome/opt/google/chrome/chrome"
 os.environ["CHROMEDRIVER_PATH"] = "/opt/render/.local/chromedriver/chromedriver"
-os.environ["PATH"] += os.pathsep + os.environ["CHROMEDRIVER_PATH"]
+os.environ["PATH"] += os.pathsep + "/opt/render/chromedriver"
 
 # Adiciona ao PATH
 os.environ["PATH"] += os.pathsep + "/usr/local/bin"
@@ -117,7 +117,7 @@ def fetch_html_with_selenium(url: str) -> str:
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
     )
 
-    service = ChromeService(os.environ["CHROMEDRIVER_PATH"])
+    service = ChromeService("/opt/render/chromedriver/chromedriver")
     driver = webdriver.Chrome(service=service, options=options)
 
     # Define tempo máximo de carregamento
