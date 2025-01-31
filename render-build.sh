@@ -10,4 +10,4 @@ echo "🛠 Instalando Playwright..."
 pip install playwright
 
 echo "🌍 Baixando navegadores Playwright..."
-npx playwright install --with-deps chromium # <-- Essa linha resolve o erro
+PLAYWRIGHT_BROWSERS_PATH=0 playwright install --with-deps
