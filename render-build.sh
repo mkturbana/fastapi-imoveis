@@ -10,6 +10,6 @@ echo "🛠 Instalando Playwright..."
 pip install playwright
 
 echo "🌍 Baixando navegadores Playwright..."
-playwright install chromium  # Instala apenas o Chromium
+npx playwright install --with-deps  # <-- Essa linha resolve o erro
 
 echo "✅ Configuração concluída!"
