@@ -128,7 +128,7 @@ async def fetch_html_with_playwright(url: str) -> str:
 
             # 🔍 Exibir os primeiros 2000 caracteres do HTML capturado para debug
             print("🔍 HTML capturado:")
-            print(html[:2000])
+            print(html[:5000])
 
             await browser.close()
             return html
