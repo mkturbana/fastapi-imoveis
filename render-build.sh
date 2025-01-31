@@ -10,4 +10,4 @@ echo "🛠 Instalando Playwright..."
 pip install playwright
 
 echo "🌍 Baixando navegadores Playwright..."
-PLAYWRIGHT_BROWSERS_PATH=0 playwright install --with-deps
+PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium
