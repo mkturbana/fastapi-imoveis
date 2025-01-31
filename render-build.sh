@@ -10,6 +10,4 @@ echo "🛠 Instalando Playwright..."
 pip install playwright
 
 echo "🌍 Baixando navegadores Playwright..."
-npx playwright install --with-deps  # <-- Essa linha resolve o erro
-
-echo "✅ Configuração concluída!"
+npx playwright install --with-deps chromium # <-- Essa linha resolve o erro
