@@ -11,7 +11,7 @@ from fastapi.responses import RedirectResponse
 app = FastAPI()
 
 @app.route("/", methods=["GET", "HEAD"], include_in_schema=False)
-async def root():
+async def root(request: Request):
     return RedirectResponse(url="/docs")
 
 # URL fixa do XML da imobiliária
