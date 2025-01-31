@@ -231,26 +231,28 @@ async def fetch_property_info(property_code: str):
 async def fetch_html_with_playwright(url: str) -> str:
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)  # Abrir navegador visível para debug
+            browser = await p.chromium.launch(headless=True)  # Abrir navegador em modo invisível
             context = await browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 viewport={"width": 1280, "height": 800},
                 device_scale_factor=1,
                 is_mobile=False
-            )  # Fechamento alinhado corretamente
-            
+            )
             page = await context.new_page()
 
             await page.goto(url, wait_until="load")
             await page.wait_for_load_state("networkidle")  # Espera até não haver mais requisições ativas
-            await page.wait_for_timeout(20000)  
+            await page.wait_for_timeout(2000)  # Pequeno delay para evitar bloqueios
 
+            # 🔹 Simula um clique no <body> para interagir com a página
+            await page.click("body")
+
+            # 🔍 Captura o HTML final renderizado
             html = await page.content()
-            print("🔍 HTML capturado:")
-            print(html[:3000])  # Exibir os primeiros 3000 caracteres
 
             await browser.close()
             return html
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao capturar HTML: {str(e)}")
+
