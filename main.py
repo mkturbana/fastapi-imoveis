@@ -95,28 +95,13 @@ async def fetch_property_info(property_code: str):
 # 🏡 Função interna para buscar HTML
 
 async def fetch_html_with_playwright(url):
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)  # Executa o navegador no modo headless
-        page = await browser.new_page()
-        await page.goto(url, timeout=60000)  # Acessa a página (timeout de 60s)
-        
-        html = await page.content()  # Obtém o HTML da página
-        await browser.close()
-        return html
-
-async def extract_property_code(url):
-    html = await fetch_html_with_playwright(url)
-    
-    # 🔹 Salva o HTML para depuração
-    with open("pagina.html", "w", encoding="utf-8") as f:
-        f.write(html)
-
-    # 🔹 Usa BeautifulSoup para extrair os dados
-    soup = BeautifulSoup(html, "html.parser")
-    
-    # 🔹 Exemplo de extração do código do imóvel (ajuste conforme necessário)
-    codigo = soup.find("span", class_="property-code")
-    
-    if codigo:
-        return codigo.get_text(strip=True)
-    return "Código não encontrado"
+    try:
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+            await page.goto(url, timeout=60000)
+            html = await page.content()
+            await browser.close()
+            return html
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao capturar HTML: {str(e)}")
