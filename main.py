@@ -9,6 +9,10 @@ from playwright.async_api import async_playwright
 
 app = FastAPI()
 
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="/docs")
+
 # URL fixa do XML da imobiliária
 XML_URL = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afecd2c0b"
 
