@@ -4,7 +4,7 @@ import re
 import logging
 import httpx
 from bs4 import BeautifulSoup
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from playwright.async_api import async_playwright
 from fastapi.responses import RedirectResponse
 
