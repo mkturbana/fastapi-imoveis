@@ -120,13 +120,18 @@ async def fetch_html_with_playwright(url: str) -> str:
             context = await browser.new_context()
             page = await context.new_page()
 
-            await page.goto(url, wait_until="load")
-            await page.wait_for_timeout(3000)
-            await page.wait_for_selector("body", timeout=5000)
+            await page.goto(url, wait_until="load")  # Espera o carregamento total
+            await page.wait_for_timeout(5000)  # Aguarda 5 segundos extras
+            await page.wait_for_selector("body", timeout=5000)  # Aguarda o body carregar
 
             html = await page.content()
+
+            # 🔍 Exibir os primeiros 2000 caracteres do HTML capturado para debug
+            print("🔍 HTML capturado:")
+            print(html[:2000])
+
             await browser.close()
             return html
 
-    except Exception as e:  # ✅ Agora está alinhado corretamente com `try`
+    except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao capturar HTML: {str(e)}")
