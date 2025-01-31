@@ -156,36 +156,52 @@ async def detect_site(url: str):
 
 # 3️⃣ 🔢 Extrai código do imóvel e captura HTML automaticamente
 
-@app.get("/extract-code/")
-async def extract_property_code(url_anuncio: str, site_detectado: str):
-    """Captura o HTML da página e extrai o código do imóvel com Playwright."""
+@app.get("/extract-code/chavesnamao")
+async def extract_chavesnamao(url_anuncio: str):
+    """Extrai o código do imóvel para anúncios do Chaves na Mão."""
+    html = await fetch_html_with_playwright(url_anuncio)
+    match = re.search(r'Ref:\s*\S*--\S*\s*\(([\w-]+)', html)
+    
+    if not match:
+        raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
+    
+    return {"codigo_imovel": match.group(1)}
 
-    # Detecta o site automaticamente
-    site_info = await detect_site(url_anuncio)
-    site_detectado = site_info["site_detectado"]
+@app.get("/extract-code/imovelweb")
+async def extract_imovelweb(url_anuncio: str):
+    """Extrai o código do imóvel para anúncios do Imovelweb."""
+    html = await fetch_html_with_playwright(url_anuncio)
+    match = re.search(r'publisher_house_id\s*=\s*"([\w-]+)"', html)
+    
+    if not match:
+        raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
+    
+    return {"codigo_imovel": match.group(1)}
 
-    # Captura o HTML usando Playwright
+@app.get("/extract-code/buscacuritiba")
+async def extract_buscacuritiba(url_anuncio: str):
+    """Extrai o código do imóvel para anúncios do Busca Curitiba."""
     html = await fetch_html_with_playwright(url_anuncio)
     soup = BeautifulSoup(html, "html.parser")
+    reference_element = soup.find("p", string=re.compile("Referência:", re.IGNORECASE))
+    
+    if reference_element:
+        strong_tag = reference_element.find("strong")
+        if strong_tag:
+            return {"codigo_imovel": strong_tag.text.strip()}
+    
+    raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
 
-    property_code = None
-
-    if "imovelweb.com.br" in site_detectado:
-        match = re.search(r'publisher_house_id\s*=\s*"([\w-]+)"', html)
-        property_code = match.group(1) if match else None
-
-    elif "chavesnamao.com.br" in site_detectado:
-        match = re.search(r'Ref:\s*\S*--\S*\s*([\w-]+)', html)
-        property_code = match.group(1) if match else None
-
-    else:
-        match = re.search(r'(ID[:.\s]*\d+|Código[:.\s]*\d+|ref[:.\s]*\d+)', html)
-        property_code = match.group(1) if match else None
-
-    if not property_code:
+@app.get("/extract-code/outros")
+async def extract_outros(url_anuncio: str):
+    """Tenta extrair o código do imóvel de outros sites."""
+    html = await fetch_html_with_playwright(url_anuncio)
+    match = re.search(r'(ID[:.\s]*\d+|Código[:.\s]*\d+|ref[:.\s]*\d+)', html)
+    
+    if not match:
         raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
-
-    return {"codigo_imovel": property_code}
+    
+    return {"codigo_imovel": match.group(1)}
 
 # 📄 Busca informações do imóvel no XML
 @app.get("/fetch-xml/")
@@ -229,29 +245,15 @@ async def fetch_property_info(property_code: str):
 # 🏡 Função interna para buscar HTML
 
 async def fetch_html_with_playwright(url: str) -> str:
-    try:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)  # Abrir navegador em modo invisível
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                viewport={"width": 1280, "height": 800},
-                device_scale_factor=1,
-                is_mobile=False
-            )
-            page = await context.new_page()
-
-            await page.goto(url, wait_until="load")
-            await page.wait_for_load_state("networkidle")  # Espera até não haver mais requisições ativas
-            await page.wait_for_timeout(2000)  # Pequeno delay para evitar bloqueios
-
-            # 🔹 Simula um clique no <body> para interagir com a página
-            await page.click("body")
-
-            # 🔍 Captura o HTML final renderizado
-            html = await page.content()
-
-            await browser.close()
-            return html
+    """Captura o HTML da página usando Playwright."""
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context()
+        page = await context.new_page()
+        await page.goto(url, wait_until="load")
+        html = await page.content()
+        await browser.close()
+        return html
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao capturar HTML: {str(e)}")
