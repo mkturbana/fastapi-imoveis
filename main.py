@@ -9,6 +9,26 @@ from fastapi.responses import RedirectResponse
 # Inicializa o FastAPI
 app = FastAPI()
 
+@app.route("/", methods=["GET", "HEAD"], include_in_schema=False)
+async def root(request: Request):
+    return RedirectResponse(url="/docs")
+
+# URL fixa do XML da imobiliária
+XML_URL = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afecd2c0b"
+
+logging.basicConfig(level=logging.INFO)
+
+# 1️⃣ 🔗 Extrai URL de uma mensagem enviada pelo usuário
+
+@app.post("/extract-url/")
+async def extract_url_from_message(message: str):
+    """Extrai a URL de uma mensagem."""
+    url_match = re.search(r'(https?://[^\s]+)', message)
+    if url_match:
+        return {"url_anuncio": url_match.group(1)}
+    
+    raise HTTPException(status_code=400, detail="Nenhuma URL encontrada na mensagem.")
+
 # Configuração do logging
 logging.basicConfig(level=logging.INFO)
 
