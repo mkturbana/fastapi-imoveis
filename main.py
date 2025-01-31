@@ -114,26 +114,19 @@ async def fetch_property_info(property_code: str):
 # 🏡 Função interna para buscar HTML
 
 async def fetch_html_with_playwright(url: str) -> str:
+    try:
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context()
+            page = await context.new_page()
 
-  async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context()
-        page = await context.new_page()
-        
-        # 🌍 Acessa a URL e espera a página carregar completamente
-        await page.goto(url, wait_until="load")  # Espera o carregamento total
-        
-        # 🕒 Opcional: Aguarda um tempo extra para garantir que tudo seja renderizado
-        await page.wait_for_timeout(3000)  # Espera 3 segundos
-        
-        # 🏗️ Aguarda elementos específicos que garantem que o HTML esteja completo
-        await page.wait_for_selector("body", timeout=5000)  # Aguarda a tag <body> carregar
-        
-        # 📄 Captura o HTML final renderizado
-        html = await page.content()
-        
-        await browser.close()
-        return html
+            await page.goto(url, wait_until="load")
+            await page.wait_for_timeout(3000)
+            await page.wait_for_selector("body", timeout=5000)
 
-    except Exception as e:
+            html = await page.content()
+            await browser.close()
+            return html
+
+    except Exception as e:  # ✅ Agora está alinhado corretamente com `try`
         raise HTTPException(status_code=500, detail=f"Erro ao capturar HTML: {str(e)}")
