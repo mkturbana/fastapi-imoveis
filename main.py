@@ -255,6 +255,6 @@ async def fetch_html_with_playwright(url: str) -> str:
         await browser.close()
         return html
 
-    except Exception as e:
+except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao capturar HTML: {str(e)}")
 
