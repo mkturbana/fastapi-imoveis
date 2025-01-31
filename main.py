@@ -1,10 +1,13 @@
 import os
+
 import re
 import logging
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
-from playwright.async_api import async_playwright
+
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service)
 
 app = FastAPI()
 
@@ -14,6 +17,7 @@ XML_URL = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afe
 logging.basicConfig(level=logging.INFO)
 
 # 1️⃣ 🔗 Extrai URL de uma mensagem enviada pelo usuário
+
 @app.post("/extract-url/")
 async def extract_url_from_message(message: str):
     """Extrai a URL de uma mensagem."""
@@ -24,6 +28,7 @@ async def extract_url_from_message(message: str):
     raise HTTPException(status_code=400, detail="Nenhuma URL encontrada na mensagem.")
 
 # 2️⃣ 🔎 Detecta o site de origem
+
 @app.get("/detect-site/")
 async def detect_site(url: str):
     match = re.search(r"https?://(?:www\.)?([^/]+)", url)
@@ -31,23 +36,8 @@ async def detect_site(url: str):
         return {"site_detectado": match.group(1)}
     raise HTTPException(status_code=400, detail="URL inválida.")
 
-# 3️⃣ 📄 Captura HTML usando Playwright
-async def fetch_html_with_playwright(url):
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)  # Executa o navegador no modo headless
-        page = await browser.new_page()
-        await page.goto(url, timeout=60000)  # Acessa a página (timeout de 60s)
-        
-        html = await page.content()  # Obtém o HTML da página
-        await browser.close()
-        
-        # Salva o HTML para depuração
-        with open("pagina.html", "w", encoding="utf-8") as f:
-            f.write(html)
-        
-        return html
+# 3️⃣ 🔢 Extrai código do imóvel e captura HTML automaticamente
 
-# 4️⃣ 🔢 Extrai código do imóvel do HTML
 @app.get("/extract-code/")
 async def extract_property_code(url_anuncio: str, site_detectado: str):
     """Captura o HTML da página e extrai o código do imóvel com Playwright."""
@@ -82,7 +72,8 @@ async def extract_property_code(url_anuncio: str, site_detectado: str):
 
     return {"codigo_imovel": property_code}
 
-# 5️⃣ 📄 Busca informações do imóvel no XML
+# 4️⃣ 📄 Busca informações do imóvel no XML
+
 @app.get("/fetch-xml/")
 async def fetch_property_info(property_code: str):
     """Busca informações do imóvel no XML usando o código do imóvel."""
@@ -102,3 +93,32 @@ async def fetch_property_info(property_code: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# 🏡 Função interna para buscar HTML
+
+async def fetch_html_with_playwright(url):
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)  # Executa o navegador no modo headless
+        page = await browser.new_page()
+        await page.goto(url, timeout=60000)  # Acessa a página (timeout de 60s)
+        
+        html = await page.content()  # Obtém o HTML da página
+        await browser.close()
+        return html
+
+async def extract_property_code(url):
+    html = await fetch_html_with_playwright(url)
+    
+    # 🔹 Salva o HTML para depuração
+    with open("pagina.html", "w", encoding="utf-8") as f:
+        f.write(html)
+
+    # 🔹 Usa BeautifulSoup para extrair os dados
+    soup = BeautifulSoup(html, "html.parser")
+    
+    # 🔹 Exemplo de extração do código do imóvel (ajuste conforme necessário)
+    codigo = soup.find("span", class_="property-code")
+    
+    if codigo:
+        return codigo.get_text(strip=True)
+    return "Código não encontrado"
