@@ -75,27 +75,44 @@ async def extract_property_code(url_anuncio: str, site_detectado: str):
 
     return {"codigo_imovel": property_code}
 
-# 4️⃣ 📄 Busca informações do imóvel no XML
-
+# 📄 Busca informações do imóvel no XML
 @app.get("/fetch-xml/")
+
 async def fetch_property_info(property_code: str):
     """Busca informações do imóvel no XML usando o código do imóvel."""
+    xml_url = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afecd2c0b"
     
     try:
-        response = httpx.get(XML_URL)
+        response = httpx.get(xml_url)
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail="Erro ao acessar XML.")
 
         soup = BeautifulSoup(response.text, "xml")
 
+        # 🏠 Busca pelo código do imóvel dentro da tag <ListingID>
         property_info = soup.find("ListingID", string=property_code)
         if not property_info:
             raise HTTPException(status_code=404, detail="Imóvel não encontrado no XML.")
 
-        return {"codigo_imovel": property_code}
+        # 🔍 Pega o elemento pai para acessar os dados completos do imóvel
+        listing = property_info.find_parent("Listing")
+        
+        # 📋 Extrai as informações da imobiliária
+        contact_info = listing.find("ContactInfo")
+        realtor_name = contact_info.find("Name").text if contact_info and contact_info.find("Name") else "Não informado"
+        realtor_email = contact_info.find("Email").text if contact_info and contact_info.find("Email") else "Não informado"
+        realtor_phone = contact_info.find("Telephone").text if contact_info and contact_info.find("Telephone") else "Não informado"
 
+        return {
+            "property_code": property_code,
+            "realtor_name": realtor_name,
+            "realtor_email": realtor_email,
+            "realtor_phone": realtor_phone
+        }
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # 🏡 Função interna para buscar HTML
 
