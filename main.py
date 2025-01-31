@@ -6,9 +6,6 @@ import httpx
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
 
-service = Service(ChromeDriverManager().install())
-driver = webdriver.Chrome(service=service)
-
 app = FastAPI()
 
 # URL fixa do XML da imobiliária
