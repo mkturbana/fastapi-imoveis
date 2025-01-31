@@ -7,7 +7,7 @@ pip install -r requirements.txt
 echo "🛠 Instalando Playwright..."
 pip install playwright
 
-echo "🌍 Baixando navegador Chromium para Playwright..."
-playwright install chromium || { echo "🚨 Erro ao instalar Chromium!"; exit 1; }
+echo "🌍 Baixando navegadores Playwright..."
+playwright install chromium  # Instala apenas o Chromium
 
 echo "✅ Configuração concluída!"
