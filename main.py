@@ -5,6 +5,7 @@ import logging
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
+from playwright.async_api import async_playwright
 
 app = FastAPI()
 
