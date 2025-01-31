@@ -121,14 +121,14 @@ async def fetch_html_with_playwright(url: str) -> str:
             page = await context.new_page()
 
             await page.goto(url, wait_until="load")  # Espera o carregamento total
-            await page.wait_for_timeout(5000)  # Aguarda 5 segundos extras
-            await page.wait_for_selector("body", timeout=5000)  # Aguarda o body carregar
+            await page.wait_for_timeout(10000)  # Aguarda 10 segundos extras
+            await page.wait_for_selector("body", timeout=10000)  # Aguarda o body carregar
 
             html = await page.content()
 
-            # 🔍 Exibir os primeiros 2000 caracteres do HTML capturado para debug
+            # 🔍 Exibir os primeiros 10000 caracteres do HTML capturado para debug
             print("🔍 HTML capturado:")
-            print(html[:5000])
+            print(html[:10000])
 
             await browser.close()
             return html
