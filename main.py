@@ -12,27 +12,34 @@ logging.basicConfig(level=logging.INFO)
 
 # 🔍 Função para capturar HTML usando Playwright e evitar bloqueios
 async def fetch_html_with_playwright(url: str) -> str:
-    """Captura o HTML da página carregada, evitando bloqueios e verificações."""
     try:
         async with async_playwright() as p:
+            # 🚀 Inicia o navegador em modo headless
             browser = await p.chromium.launch(headless=True)
+
+            # 📌 Define um contexto para evitar bloqueios
             context = await browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 viewport={"width": 1280, "height": 800},
-                device_scale_factor=1,
                 is_mobile=False
             )
-            page = await context.new_page()
-            await page.goto(url, wait_until="load")
-            await page.wait_for_load_state("networkidle")
-            await page.wait_for_timeout(5000)  # Tempo extra para carregar tudo
 
+            page = await context.new_page()
+
+            # 🌎 Acessa a URL e aguarda o carregamento completo
+            await page.goto(url, wait_until="load")
+            await page.wait_for_load_state("networkidle")  # Espera todas as requisições finalizarem
+
+            # 🖱️ Interage com a página para evitar bloqueios
+            await page.click("body")  # Clica no corpo da página para simular interação humana
+            await page.wait_for_timeout(3000)  # Aguarda 3 segundos para garantir renderização
+
+            # 🔍 Captura o HTML final renderizado
             html = await page.content()
 
-            # 🛑 Detecta bloqueios como Cloudflare, CAPTCHA, etc.
-            blocked_keywords = ["Just a moment", "challenge", "verification", "Access denied", "Cloudflare"]
-            if any(keyword.lower() in html.lower() for keyword in blocked_keywords):
-                raise HTTPException(status_code=403, detail="A página parece estar bloqueada ou requer verificação manual.")
+            # 📌 Debug: Exibir os primeiros 3000 caracteres do HTML
+            print("🔍 HTML capturado:")
+            print(html[:3000])
 
             await browser.close()
             return html
