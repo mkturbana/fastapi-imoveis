@@ -1,7 +1,7 @@
 import re
 import httpx
 import logging
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 from fastapi import FastAPI, HTTPException
 from playwright.async_api import async_playwright
 
@@ -61,17 +61,18 @@ async def detect_site(url: str):
 # 🔎 Extração de código do imóvel - Chaves na Mão
 @app.get("/extract-code/chavesnamao/")
 async def extract_property_code_chavesnamao(url_anuncio: str):
-    """Extrai o código do imóvel do site Chaves na Mão."""
-    
+    """Extrai o código do imóvel da página do Chaves na Mão."""
     html = await fetch_html_with_playwright(url_anuncio)
     soup = BeautifulSoup(html, "html.parser")
 
-    property_code = None
+    # Encontra todos os comentários no HTML
+    comments = soup.find_all(string=lambda text: isinstance(text, Comment))
 
-    # Regex funcional usada anteriormente
-    match = re.search(r'Ref:\s*\-*\s*\-*\s*([\w-]+)', html)
-    if match:
-        property_code = match.group(1)
+    property_code = None
+    for comment in comments:
+        if "Ref:" in comment:  # Verifica se o comentário contém "Ref:"
+            property_code = comment.strip().replace("Ref:", "").strip()  # Extrai e limpa o código
+            break  # Sai do loop após encontrar a referência
 
     if not property_code:
         raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
