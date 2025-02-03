@@ -60,13 +60,23 @@ async def detect_site(url: str):
 
 # 🔎 Extração de código do imóvel - Chaves na Mão
 @app.get("/extract-code/chavesnamao/")
-async def extract_code_chavesnamao(url_anuncio: str):
+async def extract_property_code_chavesnamao(url_anuncio: str):
     """Extrai o código do imóvel do site Chaves na Mão."""
+    
     html = await fetch_html_with_playwright(url_anuncio)
-    match = re.search(r'Ref:\s*<\!--\s*->\s*([\w-]+)', html)
+    soup = BeautifulSoup(html, "html.parser")
+
+    property_code = None
+
+    # Regex funcional usada anteriormente
+    match = re.search(r'Ref:\s*\-*\s*\-*\s*([\w-]+)', html)
     if match:
-        return {"codigo_imovel": match.group(1)}
-    raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
+        property_code = match.group(1)
+
+    if not property_code:
+        raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
+
+    return {"codigo_imovel": property_code}
 
 
 # 🔎 Extração de código do imóvel - ImovelWeb
