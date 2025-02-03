@@ -31,7 +31,7 @@ async def fetch_html_with_playwright(url: str) -> str:
             await page.goto(url, wait_until="load")
             await page.wait_for_timeout(5000)
             try:
-            await page.click("body")  # Clica no corpo da página para simular interação humana
+                await page.click("body")  # Clica no corpo da página para simular interação humana
             except:
                 pass  # Se não puder clicar, apenas ignora
 
