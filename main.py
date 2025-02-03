@@ -65,20 +65,20 @@ async def extract_property_code_chavesnamao(url_anuncio: str):
     html = await fetch_html_with_playwright(url_anuncio)
     soup = BeautifulSoup(html, "html.parser")
 
-    # Encontra todos os comentários no HTML
+    # 🔍 1. Tenta encontrar o código dentro de um comentário HTML
     comments = soup.find_all(string=lambda text: isinstance(text, Comment))
-
-    property_code = None
     for comment in comments:
-        if "Ref:" in comment:  # Verifica se o comentário contém "Ref:"
-            property_code = comment.strip().replace("Ref:", "").strip()  # Extrai e limpa o código
-            break  # Sai do loop após encontrar a referência
+        match = re.search(r"Ref:\s*([\w-]+)", comment)
+        if match:
+            return {"codigo_imovel": match.group(1)}
 
-    if not property_code:
-        raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
+    # 🔍 2. Tenta encontrar o código dentro de meta tags ou textos normais
+    match = re.search(r"ref:\s*do imóvel[:\s]*([\w-]+)", html, re.IGNORECASE)
+    if match:
+        return {"codigo_imovel": match.group(1)}
 
-    return {"codigo_imovel": property_code}
-
+    # Se não encontrar, retorna erro
+    raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
 
 # 🔎 Extração de código do imóvel - ImovelWeb
 @app.get("/extract-code/imovelweb/")
