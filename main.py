@@ -11,53 +11,44 @@ logging.basicConfig(level=logging.INFO)
 
 
 # 🔍 Função para capturar HTML usando Playwright e evitar bloqueios
-async def fetch_html_with_playwright(url: str, wait_for_full_load: bool = True) -> str:
+async def fetch_html_with_playwright(url: str) -> str:
     try:
         async with async_playwright() as p:
+            # 🚀 Inicia o navegador em modo headless
             browser = await p.chromium.launch(headless=True)
+
+            # 📌 Define um contexto para evitar bloqueios
             context = await browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 viewport={"width": 1280, "height": 800},
                 device_scale_factor=1,
-                is_mobile=False,
-                java_script_enabled=True
+                is_mobile=False
             )
+
             page = await context.new_page()
-            await page.goto(url, wait_until="networkidle" if wait_for_full_load else "domcontentloaded")
-            
-            await page.wait_for_selector("body")
 
+            # 🌎 Acessa a URL e aguarda o carregamento completo
+            await page.goto(url, wait_until="load")
+            await page.wait_for_timeout(5000)
             try:
-                await page.click("body")  # Simula interação humana
+                await page.click("body")  # Clica no corpo da página para simular interação humana
             except:
-                pass  # Ignora erro se não for possível clicar
+                pass  # Se não puder clicar, apenas ignora
 
-            await page.wait_for_timeout(7000)
+            await page.wait_for_load_state("networkidle")  # Espera todas as requisições finalizarem
 
+            # 🖱️ Interage com a página para evitar bloqueios
+            await page.wait_for_timeout(3000)  # Aguarda 3 segundos para garantir renderização
+
+            # 🔍 Captura o HTML final renderizado
             html = await page.content()
 
+            # 📌 Debug: Exibir os primeiros 3000 caracteres do HTML
             print("🔍 HTML capturado:")
-            print(html[:10000]) 
-
-            if "Just a moment..." in html or "cf-chl-bypass" in html or "challenge-platform" in html:
-                raise HTTPException(status_code=500, detail="Erro ao capturar HTML: possível bloqueio do Cloudflare")
+            print(html[:10000])
 
             await browser.close()
             return html
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao capturar HTML: {str(e)}")
-
-
-# 📌 Debug: Exibir os primeiros 10000 caracteres do HTML
-print("🔍 HTML capturado:")
-print(html[:10000])  
-
-if "Just a moment..." in html or "cf-chl-bypass" in html or "challenge-platform" in html:
-    raise HTTPException(status_code=500, detail="Erro ao capturar HTML: possível bloqueio do Cloudflare")
-
-await browser.close()
-return html
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao capturar HTML: {str(e)}")
@@ -94,6 +85,7 @@ async def extract_property_code_chavesnamao(url_anuncio: str):
 
     # Se não encontrar, retorna erro
     raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
+
 
 # 🔎 Extração de código do imóvel - ImovelWeb
 @app.get("/extract-code/imovelweb/")
