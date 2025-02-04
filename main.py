@@ -55,7 +55,7 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
 
         page = await context.new_page()
 
-        await stealth(page)
+        await stealth_async(page)
         
         # Ajuste das configurações para cada site
         if site == "chavesnamao":
