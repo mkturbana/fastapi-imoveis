@@ -67,7 +67,7 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
     try:
         async with async_playwright() as p:
             # Para depuração, você pode alterar headless para False
-            browser = await p.chromium.launch(headless=False)
+            browser = await p.chromium.launch(headless=True)
 
             # Criar state.json vazio se não existir
             if not os.path.exists("state.json"):
