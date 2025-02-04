@@ -62,21 +62,21 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
         # Ajuste das configurações para cada site
         if site == "chavesnamao":
             await page.goto(url, wait_until="networkidle")
-            await page.wait_for_timeout(8000)
+            await page.wait_for_timeout(15000)
             await page.mouse.move(200, 200)
             await page.mouse.wheel(0, 300)
             await page.keyboard.press("End")
 
         elif site == "imovelweb":
             await page.goto(url, wait_until="domcontentloaded")
-            await page.wait_for_timeout(8000)
+            await page.wait_for_timeout(15000)
             await page.mouse.click(50, 50)  # Interação para desbloqueio
             await page.mouse.wheel(0, 300)
             await page.keyboard.press("End")
 
         elif site == "buscacuritiba":
             await page.goto(url, wait_until="load")
-            await page.wait_for_timeout(8000)
+            await page.wait_for_timeout(15000)
             await page.mouse.click(50, 50)  # Interação para desbloqueio
             await page.mouse.wheel(0, 300)
             await page.keyboard.press("End")
