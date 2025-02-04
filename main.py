@@ -34,7 +34,7 @@ async def detect_site(url: str):
 async def fetch_html_with_playwright(url: str, site: str) -> str:
     """Captura o HTML da página com Playwright, ajustando configurações conforme o site."""
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        browser = await p.chromium.launch(headless=True)
 
         # Criar state.json vazio se não existir
         if not os.path.exists("state.json"):
