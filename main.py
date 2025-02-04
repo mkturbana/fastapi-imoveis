@@ -76,14 +76,13 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                 logging.info("Arquivo state.json foi criado.")
 
             context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0",
-                viewport={"width": 1280, "height": 800},
-                device_scale_factor=1,
-                is_mobile=False,
-                java_script_enabled=True,
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
                 bypass_csp=True,
-                storage_state="state.json"
+                storage_state="state.json",
+                permissions=["geolocation"],  # Algumas proteções verificam permissões
+                viewport={"width": 1280, "height": 720},  # Define um tamanho normal de tela
             )
+            await context.add_init_script("navigator.webdriver = undefined")  # Remove a flag de automação
 
             page = await context.new_page()
 
