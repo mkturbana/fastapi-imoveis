@@ -1,3 +1,8 @@
+import sys
+if sys.platform.startswith('win'):
+    import asyncio
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
 import re
 import os
 import json
@@ -12,19 +17,32 @@ from bs4 import BeautifulSoup, Comment
 
 app = FastAPI()
 
-# Exception handler customizado para retornar erros em JSON
+# Exception handler para HTTPException
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    # Se exc.detail for vazio, atribui "Internal Server Error"
+    error_detail = exc.detail if (exc.detail and str(exc.detail).strip() != "") else "Internal Server Error"
+    logging.error(f"Erro HTTP: {error_detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": error_detail},
+    )
+
+# Exception handler global para demais exceções
 @app.exception_handler(Exception)
 async def custom_exception_handler(request: Request, exc: Exception):
-    logging.error(f"Erro interno: {exc}")
+    error_detail = str(exc) if str(exc).strip() != "" else "Internal Server Error"
+    logging.error(f"Erro interno: {error_detail}")
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal Server Error"},
+        content={"detail": error_detail},
     )
 
 logging.basicConfig(level=logging.INFO)
 logging.info("Iniciando Playwright...")
 
-# 📩 Extração de URL de mensagens enviadas
+# ------------------------------------------------------------------------------
+# Endpoint para extrair URL de mensagens enviadas
 @app.post("/extract-url/")
 async def extract_url_from_message(message: str):
     """Extrai uma URL de uma mensagem enviada pelo usuário."""
@@ -33,7 +51,8 @@ async def extract_url_from_message(message: str):
         return {"url_extraida": match.group(0)}
     raise HTTPException(status_code=400, detail="Nenhuma URL encontrada na mensagem.")
 
-# 🎯 Função para detectar o site baseado na URL
+# ------------------------------------------------------------------------------
+# Endpoint para detectar o site a partir da URL
 @app.get("/detect-site/")
 async def detect_site(url: str):
     """Detecta o site a partir da URL."""
@@ -42,70 +61,77 @@ async def detect_site(url: str):
         return {"site_detectado": match.group(1)}
     raise HTTPException(status_code=400, detail="URL inválida.")
 
+# ------------------------------------------------------------------------------
 async def fetch_html_with_playwright(url: str, site: str) -> str:
     """Captura o HTML da página com Playwright, ajustando configurações conforme o site."""
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+    try:
+        async with async_playwright() as p:
+            # Para depuração, você pode alterar headless para False
+            browser = await p.chromium.launch(headless=False)
 
-        # Criar state.json vazio se não existir
-        if not os.path.exists("state.json"):
-            with open("state.json", "w") as f:
-                f.write('{"cookies": [], "origins": []}')
-            logging.info("Arquivo state.json foi criado.")
-       
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0",
-            viewport={"width": 1280, "height": 800},
-            device_scale_factor=1,
-            is_mobile=False,
-            java_script_enabled=True,
-            bypass_csp=True,
-            storage_state="state.json"
-        )
+            # Criar state.json vazio se não existir
+            if not os.path.exists("state.json"):
+                with open("state.json", "w") as f:
+                    f.write('{"cookies": [], "origins": []}')
+                logging.info("Arquivo state.json foi criado.")
 
-        page = await context.new_page()
-        
-        # Aplicando Playwright-Stealth corretamente
-        logging.info
-        await stealth_async(page)
+            context = await browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0",
+                viewport={"width": 1280, "height": 800},
+                device_scale_factor=1,
+                is_mobile=False,
+                java_script_enabled=True,
+                bypass_csp=True,
+                storage_state="state.json"
+            )
 
-        # Ajuste das configurações para cada site
-        if site == "chavesnamao":
-            await page.goto(url, wait_until="networkidle")
-            await page.wait_for_timeout(8000)
-            await page.mouse.move(200, 200)
-            await page.mouse.wheel(0, 300)
-            await page.keyboard.press("End")
+            page = await context.new_page()
 
-        elif site == "imovelweb":
-            await page.goto(url, wait_until="domcontentloaded")
-            await page.wait_for_timeout(8000)
-            await page.mouse.click(50, 50)  # Interação para desbloqueio
-            await page.mouse.wheel(0, 300)
-            await page.keyboard.press("End")
+            # Aplicando Playwright-Stealth
+            logging.info("Aplicando stealth...")
+            await stealth_async(page)
 
-        elif site == "buscacuritiba":
-            await page.goto(url, wait_until="load")
-            await page.wait_for_timeout(8000)
-            await page.mouse.click(50, 50)  # Interação para desbloqueio
-            await page.mouse.wheel(0, 300)
-            await page.keyboard.press("End")
+            # Ajuste das configurações para cada site
+            if site == "chavesnamao":
+                await page.goto(url, wait_until="networkidle")
+                await page.wait_for_timeout(15000)
+                await page.mouse.move(200, 200)
+                await page.mouse.wheel(0, 300)
+                await page.keyboard.press("End")
 
-        # Salva o estado atualizado no arquivo state.json
-        await context.storage_state(path="state.json")
+            elif site == "imovelweb":
+                await page.goto(url, wait_until="domcontentloaded")
+                await page.wait_for_timeout(15000)
+                await page.mouse.click(50, 50)  # Interação para desbloqueio
+                await page.mouse.wheel(0, 300)
+                await page.keyboard.press("End")
 
-        # Exibe o conteúdo do state.json para depuração
-        with open("state.json", "r") as f:
-            data = json.load(f)
-            logging.info("Conteúdo do state.json:\n%s", json.dumps(data, indent=2))
+            elif site == "buscacuritiba":
+                await page.goto(url, wait_until="load")
+                await page.wait_for_timeout(15000)
+                await page.mouse.click(50, 50)  # Interação para desbloqueio
+                await page.mouse.wheel(0, 300)
+                await page.keyboard.press("End")
 
-        html = await page.content()
-        await browser.close()
+            # Salva o estado atualizado no arquivo state.json
+            await context.storage_state(path="state.json")
 
-        print(html[:5000])
+            # Exibe o conteúdo do state.json para depuração
+            with open("state.json", "r") as f:
+                data = json.load(f)
+                logging.info("Conteúdo do state.json:\n%s", json.dumps(data, indent=2))
 
-        return html
+            html = await page.content()
+            await browser.close()
 
+            logging.info("HTML extraído com sucesso.")
+            print(html[:5000])
+            return html
+    except Exception as e:
+        logging.error(f"Erro em fetch_html_with_playwright: {e}")
+        raise e
+
+# ------------------------------------------------------------------------------
 @app.get("/extract-code/chavesnamao/")
 async def extract_chavesnamao(url_anuncio: str):
     html = await fetch_html_with_playwright(url_anuncio, "chavesnamao")
@@ -121,12 +147,12 @@ async def extract_buscacuritiba(url_anuncio: str):
     html = await fetch_html_with_playwright(url_anuncio, "buscacuritiba")
     return {"html": html}
 
-# 🏡 Busca dados do imóvel a partir do XML - Baseado no código extraído
+# ------------------------------------------------------------------------------
+# Endpoint para buscar informações do imóvel a partir do XML
 @app.get("/fetch-xml/")
 async def fetch_property_info(property_code: str):
     """Busca informações do imóvel no XML usando o código extraído."""
     xml_url = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afecd2c0b"
-
     try:
         response = httpx.get(xml_url)
         if response.status_code != 200:
@@ -151,4 +177,5 @@ async def fetch_property_info(property_code: str):
         }
 
     except Exception as e:
+        logging.error(f"Erro ao buscar XML: {e}")
         raise HTTPException(status_code=500, detail=str(e))
