@@ -22,7 +22,7 @@ async def fetch_html_with_playwright(url: str) -> str:
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 viewport={"width": 1280, "height": 800},
                 device_scale_factor=1,
-                is_mobile=False
+                is_mobile=False,
                 java_script_enabled=True,
                 bypass_csp=True
             )
