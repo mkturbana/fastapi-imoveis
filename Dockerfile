@@ -1,17 +1,24 @@
 FROM python:3.11-slim
 
-# Instala o Google Chrome e o ChromeDriver
+# Instala dependências do sistema necessárias para o Playwright
 RUN apt-get update && apt-get install -y \
-    google-chrome-stable \
-    chromium-driver \
+    wget \
+    curl \
+    unzip \
+    libnss3 \
+    libxss1 \
+    libappindicator3-1 \
+    libasound2 \
+    fonts-liberation \
+    libgtk-3-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Define variáveis de ambiente para o Selenium
-ENV CHROME_BIN=/usr/bin/google-chrome
-ENV PATH="$PATH:/usr/bin/"
-
+# Instala as dependências do Python
 WORKDIR /app
 COPY . /app
 RUN pip install -r requirements.txt
+
+# Instala os navegadores do Playwright
+RUN playwright install --with-deps chromium
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
