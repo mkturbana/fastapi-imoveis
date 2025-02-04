@@ -1,5 +1,6 @@
 import re
 import os
+import json
 import httpx
 import logging
 import playwright
@@ -34,6 +35,13 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
     """Captura o HTML da página com Playwright, ajustando configurações conforme o site."""
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
+
+        # Verifica se o arquivo state.json existe
+        if os.path.exists("state.json"):
+            logging.info("Arquivo state.json encontrado.")
+        else:
+            logging.info("Arquivo state.json não encontrado. Será gerado um novo.")
+        
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             viewport={"width": 1280, "height": 800},
@@ -55,6 +63,14 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
         elif site == "buscacuritiba":
             await page.goto(url, wait_until="load")
             await page.wait_for_timeout(4000)
+
+        # Salva o estado atualizado no arquivo state.json
+        await context.storage_state(path="state.json")
+
+        # Exibe o conteúdo do state.json para depuração
+        with open("state.json", "r") as f:
+            data = json.load(f)
+            logging.info("Conteúdo do state.json:\n%s", json.dumps(data, indent=2))
 
         html = await page.content()
         await browser.close()
