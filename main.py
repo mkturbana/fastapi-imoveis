@@ -34,18 +34,16 @@ async def detect_site(url: str):
 async def fetch_html_with_playwright(url: str, site: str) -> str:
     """Captura o HTML da página com Playwright, ajustando configurações conforme o site."""
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(headless=False)
 
         # Criar state.json vazio se não existir
         if not os.path.exists("state.json"):
             with open("state.json", "w") as f:
                 f.write('{"cookies": [], "origins": []}')
             logging.info("Arquivo state.json foi criado.")
-
-        logging.info("Arquivo state.json encontrado. Prosseguindo...")
-        
+       
         context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0",
             viewport={"width": 1280, "height": 800},
             device_scale_factor=1,
             is_mobile=False,
@@ -59,13 +57,21 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
         # Ajuste das configurações para cada site
         if site == "chavesnamao":
             await page.goto(url, wait_until="networkidle")
+            await page.wait_for_timeout(8000)
+            await page.mouse.move(200, 200)
+            await page.mouse.wheel(0, 300)
+
         elif site == "imovelweb":
             await page.goto(url, wait_until="domcontentloaded")
-            await page.wait_for_timeout(4000)
+            await page.wait_for_timeout(8000)
             await page.mouse.click(50, 50)  # Interação para desbloqueio
+            await page.mouse.wheel(0, 300)
+
         elif site == "buscacuritiba":
             await page.goto(url, wait_until="load")
-            await page.wait_for_timeout(4000)
+            await page.wait_for_timeout(8000)
+            await page.mouse.click(50, 50)  # Interação para desbloqueio
+            await page.mouse.wheel(0, 300)
 
         # Salva o estado atualizado no arquivo state.json
         await context.storage_state(path="state.json")
