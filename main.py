@@ -6,6 +6,7 @@ import logging
 import playwright
 from bs4 import BeautifulSoup, Comment
 from fastapi import FastAPI, HTTPException
+from playwright_stealth import stealth
 from playwright.async_api import async_playwright
 
 app = FastAPI()
@@ -53,6 +54,8 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
         )
 
         page = await context.new_page()
+
+        await stealth(page)
         
         # Ajuste das configurações para cada site
         if site == "chavesnamao":
@@ -60,18 +63,21 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
             await page.wait_for_timeout(8000)
             await page.mouse.move(200, 200)
             await page.mouse.wheel(0, 300)
+            await page.keyboard.press("End")
 
         elif site == "imovelweb":
             await page.goto(url, wait_until="domcontentloaded")
             await page.wait_for_timeout(8000)
             await page.mouse.click(50, 50)  # Interação para desbloqueio
             await page.mouse.wheel(0, 300)
+            await page.keyboard.press("End")
 
         elif site == "buscacuritiba":
             await page.goto(url, wait_until="load")
             await page.wait_for_timeout(8000)
             await page.mouse.click(50, 50)  # Interação para desbloqueio
             await page.mouse.wheel(0, 300)
+            await page.keyboard.press("End")
 
         # Salva o estado atualizado no arquivo state.json
         await context.storage_state(path="state.json")
