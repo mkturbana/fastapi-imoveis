@@ -1,4 +1,5 @@
 import re
+import os
 import httpx
 import logging
 from bs4 import BeautifulSoup, Comment
@@ -14,10 +15,15 @@ logging.basicConfig(level=logging.INFO)
 async def fetch_html_with_playwright(url: str) -> str:
     try:
         async with async_playwright() as p:
-            # 🚀 Inicia o navegador em modo headless
+            # 🖥️ Inicia o navegador em modo headless
             browser = await p.chromium.launch(headless=True)
 
-            # 📌 Define um contexto para evitar bloqueios
+            # 🛑 Garante que o arquivo state.json existe antes de usar
+            if not os.path.exists("state.json"):
+                with open("state.json", "w") as f:
+                    f.write("{}")  # Cria um JSON vazio
+
+            # 🛡️ Define um contexto para evitar bloqueios
             context = await browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
                 viewport={"width": 1280, "height": 800},
@@ -30,36 +36,25 @@ async def fetch_html_with_playwright(url: str) -> str:
 
             page = await context.new_page()
 
-            # 🌎 Acessa a URL e aguarda o carregamento completo
+            # 🌍 Acessa a URL e aguarda o carregamento completo
             await page.goto(url, wait_until="load")
             await page.wait_for_load_state("networkidle")
-            
+
             try:
                 await page.click("body")  # Clica no corpo da página para simular interação humana
             except:
                 pass  # Se não puder clicar, apenas ignora
 
-            # 🖱️ Interage com a página para evitar bloqueios
-            
-            await page.mouse.move(100, 200)
-            await page.mouse.click(50, 50)
-            await page.keyboard.press("ArrowDown")
-            await page.wait_for_timeout(10000)  # Apenas um tempo final para garantir execução
+            # 💾 Salva o estado atualizado ao final da navegação
+            await context.storage_state(path="state.json")
 
-            # 🔍 Captura o HTML final renderizado
+            # 📝 Captura o HTML final renderizado
             html = await page.content()
 
-            await context.storage_state(path="state.json")
-            
-            # 📌 Debug: Exibir os primeiros 3000 caracteres do HTML
-            print("🔍 HTML capturado:")
-            print(html[:10000])
-
-            await browser.close()
             return html
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao capturar HTML: {str(e)}")
+        return f"Erro ao capturar HTML: {str(e)}"
 
 
 # 🎯 Função para detectar o site baseado na URL
