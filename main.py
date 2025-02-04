@@ -4,9 +4,9 @@ import json
 import httpx
 import logging
 import playwright
+from playwright_stealth import stealth
 from bs4 import BeautifulSoup, Comment
 from fastapi import FastAPI, HTTPException
-from playwright_stealth import stealth
 from playwright.async_api import async_playwright
 
 app = FastAPI()
@@ -55,13 +55,8 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
 
         page = await context.new_page()
         
-        # Teste se a biblioteca stealth está disponível
-        if playwright_stealth:
-            await playwright_stealth.stealth(page)  # ✅ Agora está correto!
-        else:
-            logging.error("❌ playwright-stealth NÃO está disponível no ambiente!")
-
         # Aplicando Playwright-Stealth corretamente
+        logging.info
         await stealth(page) 
 
         # Ajuste das configurações para cada site
