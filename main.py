@@ -3,13 +3,23 @@ import os
 import json
 import httpx
 import logging
-import playwright
-from bs4 import BeautifulSoup, Comment
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+from starlette.requests import Request
 from playwright.async_api import async_playwright
 from playwright_stealth import stealth_async
+from bs4 import BeautifulSoup, Comment
 
 app = FastAPI()
+
+# Exception handler customizado para retornar erros em JSON
+@app.exception_handler(Exception)
+async def custom_exception_handler(request: Request, exc: Exception):
+    logging.error(f"Erro interno: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"},
+    )
 
 logging.basicConfig(level=logging.INFO)
 logging.info("Iniciando Playwright...")
@@ -62,21 +72,21 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
         # Ajuste das configurações para cada site
         if site == "chavesnamao":
             await page.goto(url, wait_until="networkidle")
-            await page.wait_for_timeout(15000)
+            await page.wait_for_timeout(8000)
             await page.mouse.move(200, 200)
             await page.mouse.wheel(0, 300)
             await page.keyboard.press("End")
 
         elif site == "imovelweb":
             await page.goto(url, wait_until="domcontentloaded")
-            await page.wait_for_timeout(15000)
+            await page.wait_for_timeout(8000)
             await page.mouse.click(50, 50)  # Interação para desbloqueio
             await page.mouse.wheel(0, 300)
             await page.keyboard.press("End")
 
         elif site == "buscacuritiba":
             await page.goto(url, wait_until="load")
-            await page.wait_for_timeout(15000)
+            await page.wait_for_timeout(8000)
             await page.mouse.click(50, 50)  # Interação para desbloqueio
             await page.mouse.wheel(0, 300)
             await page.keyboard.press("End")
