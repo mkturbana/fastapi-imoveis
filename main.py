@@ -23,6 +23,8 @@ async def fetch_html_with_playwright(url: str) -> str:
                 viewport={"width": 1280, "height": 800},
                 device_scale_factor=1,
                 is_mobile=False
+                java_script_enabled=True,
+                bypass_csp=True
             )
 
             page = await context.new_page()
@@ -38,7 +40,14 @@ async def fetch_html_with_playwright(url: str) -> str:
             await page.wait_for_load_state("networkidle")  # Espera todas as requisições finalizarem
 
             # 🖱️ Interage com a página para evitar bloqueios
-            await page.wait_for_timeout(3000)  # Aguarda 3 segundos para garantir renderização
+            await page.wait_for_timeout(7000)  # Aguarda 3 segundos para garantir renderização
+
+            await page.mouse.move(100, 200)
+            await page.wait_for_timeout(1000)
+            await page.keyboard.press("ArrowDown")
+            await page.wait_for_timeout(1000)
+            await page.mouse.click(50, 50)
+            await page.wait_for_timeout(2000)
 
             # 🔍 Captura o HTML final renderizado
             html = await page.content()
