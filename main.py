@@ -55,8 +55,9 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
 
         page = await context.new_page()
 
-        sync_stealth(page)
-        
+        # Aplicando Playwright-Stealth corretamente
+        await stealth(page)  # ✅ Agora está correto!
+
         # Ajuste das configurações para cada site
         if site == "chavesnamao":
             await page.goto(url, wait_until="networkidle")
@@ -89,6 +90,9 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
 
         html = await page.content()
         await browser.close()
+
+        print(html[:5000])
+
         return html
 
 @app.get("/extract-code/chavesnamao/")
