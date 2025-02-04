@@ -31,23 +31,18 @@ async def fetch_html_with_playwright(url: str) -> str:
 
             # 🌎 Acessa a URL e aguarda o carregamento completo
             await page.goto(url, wait_until="load")
-            await page.wait_for_timeout(5000)
+            await page.wait_for_load_state("networkidle")
             try:
                 await page.click("body")  # Clica no corpo da página para simular interação humana
             except:
                 pass  # Se não puder clicar, apenas ignora
 
-            await page.wait_for_load_state("networkidle")  # Espera todas as requisições finalizarem
-
             # 🖱️ Interage com a página para evitar bloqueios
-            await page.wait_for_timeout(7000)  # Aguarda 3 segundos para garantir renderização
-
+            
             await page.mouse.move(100, 200)
-            await page.wait_for_timeout(1000)
-            await page.keyboard.press("ArrowDown")
-            await page.wait_for_timeout(1000)
             await page.mouse.click(50, 50)
-            await page.wait_for_timeout(2000)
+            await page.keyboard.press("ArrowDown")
+            await page.wait_for_timeout(2000)  # Apenas um tempo final para garantir execução
 
             # 🔍 Captura o HTML final renderizado
             html = await page.content()
