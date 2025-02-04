@@ -2,6 +2,7 @@ import re
 import os
 import httpx
 import logging
+import playwright
 from bs4 import BeautifulSoup, Comment
 from fastapi import FastAPI, HTTPException
 from playwright.async_api import async_playwright
@@ -9,6 +10,7 @@ from playwright.async_api import async_playwright
 app = FastAPI()
 
 logging.basicConfig(level=logging.INFO)
+logging.info("Iniciando Playwright...")
 
 # 📩 Extração de URL de mensagens enviadas
 @app.post("/extract-url/")
@@ -48,11 +50,11 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
             await page.goto(url, wait_until="networkidle")
         elif site == "imovelweb":
             await page.goto(url, wait_until="domcontentloaded")
-            await page.wait_for_timeout(5000)
+            await page.wait_for_timeout(4000)
             await page.mouse.click(50, 50)  # Interação para desbloqueio
         elif site == "buscacuritiba":
             await page.goto(url, wait_until="load")
-            await page.wait_for_timeout(3000)
+            await page.wait_for_timeout(4000)
 
         html = await page.content()
         await browser.close()
