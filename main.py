@@ -24,7 +24,7 @@ async def fetch_html_with_playwright(url: str) -> str:
                 device_scale_factor=1,
                 is_mobile=False,
                 java_script_enabled=True,
-                bypass_csp=True
+                bypass_csp=True,
                 storage_state="state.json"
             )
 
