@@ -4,10 +4,10 @@ import json
 import httpx
 import logging
 import playwright
-from playwright_stealth import stealth
 from bs4 import BeautifulSoup, Comment
 from fastapi import FastAPI, HTTPException
 from playwright.async_api import async_playwright
+from playwright_stealth import stealth_async
 
 app = FastAPI()
 
@@ -57,7 +57,7 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
         
         # Aplicando Playwright-Stealth corretamente
         logging.info
-        await stealth(page) 
+        await stealth_async(page)
 
         # Ajuste das configurações para cada site
         if site == "chavesnamao":
