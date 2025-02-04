@@ -19,12 +19,13 @@ async def fetch_html_with_playwright(url: str) -> str:
 
             # 📌 Define um contexto para evitar bloqueios
             context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
                 viewport={"width": 1280, "height": 800},
                 device_scale_factor=1,
                 is_mobile=False,
                 java_script_enabled=True,
                 bypass_csp=True
+                storage_state="state.json"
             )
 
             page = await context.new_page()
@@ -32,6 +33,7 @@ async def fetch_html_with_playwright(url: str) -> str:
             # 🌎 Acessa a URL e aguarda o carregamento completo
             await page.goto(url, wait_until="load")
             await page.wait_for_load_state("networkidle")
+            await context.storage_state(path="state.json")
             try:
                 await page.click("body")  # Clica no corpo da página para simular interação humana
             except:
@@ -42,7 +44,7 @@ async def fetch_html_with_playwright(url: str) -> str:
             await page.mouse.move(100, 200)
             await page.mouse.click(50, 50)
             await page.keyboard.press("ArrowDown")
-            await page.wait_for_timeout(2000)  # Apenas um tempo final para garantir execução
+            await page.wait_for_timeout(10000)  # Apenas um tempo final para garantir execução
 
             # 🔍 Captura o HTML final renderizado
             html = await page.content()
