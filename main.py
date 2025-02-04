@@ -36,11 +36,13 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
 
-        # Verifica se o arquivo state.json existe
-        if os.path.exists("state.json"):
-            logging.info("Arquivo state.json encontrado.")
-        else:
-            logging.info("Arquivo state.json não encontrado. Será gerado um novo.")
+        # Criar state.json vazio se não existir
+        if not os.path.exists("state.json"):
+            with open("state.json", "w") as f:
+                f.write('{"cookies": [], "origins": []}')
+            logging.info("Arquivo state.json foi criado.")
+
+        logging.info("Arquivo state.json encontrado. Prosseguindo...")
         
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -51,6 +53,7 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
             bypass_csp=True,
             storage_state="state.json"
         )
+
         page = await context.new_page()
         
         # Ajuste das configurações para cada site
