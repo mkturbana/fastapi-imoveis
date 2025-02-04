@@ -10,58 +10,14 @@ app = FastAPI()
 
 logging.basicConfig(level=logging.INFO)
 
-
-# 🔍 Função para capturar HTML usando Playwright e evitar bloqueios
-async def fetch_html_with_playwright(url: str) -> str:
-    try:
-        async with async_playwright() as p:
-            # 🖥️ Inicia o navegador em modo headless
-            browser = await p.chromium.launch(headless=True)
-
-            # 🛑 Garante que o arquivo state.json existe antes de usar
-            if not os.path.exists("state.json"):
-                with open("state.json", "w") as f:
-                    f.write("{}")  # Cria um JSON vazio
-
-            # 🛡️ Define um contexto para evitar bloqueios
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-                viewport={"width": 1280, "height": 800},
-                device_scale_factor=1,
-                is_mobile=False,
-                java_script_enabled=True,
-                bypass_csp=True,
-                storage_state="state.json"
-            )
-
-            page = await context.new_page()
-
-            # 🌍 Acessa a URL e aguarda o carregamento completo
-            await page.goto(url, wait_until="load")
-            await page.wait_for_load_state("networkidle")
-
-            try:
-                await page.click("body")  # Clica no corpo da página para simular interação humana
-            except:
-                pass  # Se não puder clicar, apenas ignora
-
-            # 💾 Salva o estado atualizado ao final da navegação
-            await context.storage_state(path="state.json")
-
-            # 📝 Captura o HTML final renderizado
-            html = await page.content()
-
-            # 📌 Debug: Exibir os primeiros 3000 caracteres do HTML
-            print("🔍 HTML capturado:")
-            print(html[:10000])
-
-            await browser.close()
-
-            return html
-
-    except Exception as e:
-        return f"Erro ao capturar HTML: {str(e)}"
-
+# 📩 Extração de URL de mensagens enviadas
+@app.post("/extract-url/")
+async def extract_url_from_message(message: str):
+    """Extrai uma URL de uma mensagem enviada pelo usuário."""
+    match = re.search(r"https?://[^\s]+", message)
+    if match:
+        return {"url_extraida": match.group(0)}
+    raise HTTPException(status_code=400, detail="Nenhuma URL encontrada na mensagem.")
 
 # 🎯 Função para detectar o site baseado na URL
 @app.get("/detect-site/")
@@ -72,56 +28,50 @@ async def detect_site(url: str):
         return {"site_detectado": match.group(1)}
     raise HTTPException(status_code=400, detail="URL inválida.")
 
+async def fetch_html_with_playwright(url: str, site: str) -> str:
+    """Captura o HTML da página com Playwright, ajustando configurações conforme o site."""
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 800},
+            device_scale_factor=1,
+            is_mobile=False,
+            java_script_enabled=True,
+            bypass_csp=True,
+            storage_state="state.json"
+        )
+        page = await context.new_page()
+        
+        # Ajuste das configurações para cada site
+        if site == "chavesnamao":
+            await page.goto(url, wait_until="networkidle")
+        elif site == "imovelweb":
+            await page.goto(url, wait_until="domcontentloaded")
+            await page.wait_for_timeout(5000)
+            await page.mouse.click(50, 50)  # Interação para desbloqueio
+        elif site == "buscacuritiba":
+            await page.goto(url, wait_until="load")
+            await page.wait_for_timeout(3000)
 
-# 🔎 Extração de código do imóvel - Chaves na Mão
+        html = await page.content()
+        await browser.close()
+        return html
+
 @app.get("/extract-code/chavesnamao/")
-async def extract_property_code_chavesnamao(url_anuncio: str):
-    """Extrai o código do imóvel da página do Chaves na Mão."""
-    html = await fetch_html_with_playwright(url_anuncio)
-    soup = BeautifulSoup(html, "html.parser")
+async def extract_chavesnamao(url_anuncio: str):
+    html = await fetch_html_with_playwright(url_anuncio, "chavesnamao")
+    return {"html": html}
 
-    # 🔍 1. Tenta encontrar o código dentro de um comentário HTML
-    comments = soup.find_all(string=lambda text: isinstance(text, Comment))
-    for comment in comments:
-        match = re.search(r"Ref:\s*([\w-]+)", comment)
-        if match:
-            return {"codigo_imovel": match.group(1)}
-
-    # 🔍 2. Tenta encontrar o código dentro de meta tags ou textos normais
-    match = re.search(r"ref:\s*do imóvel[:\s]*([\w-]+)", html, re.IGNORECASE)
-    if match:
-        return {"codigo_imovel": match.group(1)}
-
-    # Se não encontrar, retorna erro
-    raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
-
-
-# 🔎 Extração de código do imóvel - ImovelWeb
 @app.get("/extract-code/imovelweb/")
-async def extract_code_imovelweb(url_anuncio: str):
-    """Extrai o código do imóvel do site ImovelWeb."""
-    html = await fetch_html_with_playwright(url_anuncio)
-    match = re.search(r'publisher_house_id\s*=\s*"([\w-]+)"', html)
-    if match:
-        return {"codigo_imovel": match.group(1)}
-    raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
+async def extract_imovelweb(url_anuncio: str):
+    html = await fetch_html_with_playwright(url_anuncio, "imovelweb")
+    return {"html": html}
 
-
-# 🔎 Extração de código do imóvel - Busca Curitiba
 @app.get("/extract-code/buscacuritiba/")
-async def extract_code_buscacuritiba(url_anuncio: str):
-    """Extrai o código do imóvel do site Busca Curitiba."""
-    html = await fetch_html_with_playwright(url_anuncio)
-    soup = BeautifulSoup(html, "html.parser")
-    reference_element = soup.find("p", string=re.compile("Referência:", re.IGNORECASE))
-    if reference_element:
-        strong_tag = reference_element.find("strong")
-        property_code = strong_tag.text.strip() if strong_tag else None
-        if property_code:
-            return {"codigo_imovel": property_code}
-
-    raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
-
+async def extract_buscacuritiba(url_anuncio: str):
+    html = await fetch_html_with_playwright(url_anuncio, "buscacuritiba")
+    return {"html": html}
 
 # 🏡 Busca dados do imóvel a partir do XML - Baseado no código extraído
 @app.get("/fetch-xml/")
@@ -154,13 +104,3 @@ async def fetch_property_info(property_code: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# 📩 Extração de URL de mensagens enviadas
-@app.post("/extract-url/")
-async def extract_url_from_message(message: str):
-    """Extrai uma URL de uma mensagem enviada pelo usuário."""
-    match = re.search(r"https?://[^\s]+", message)
-    if match:
-        return {"url_extraida": match.group(0)}
-    raise HTTPException(status_code=400, detail="Nenhuma URL encontrada na mensagem.")
