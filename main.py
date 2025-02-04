@@ -54,9 +54,15 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
         )
 
         page = await context.new_page()
+        
+        # Teste se a biblioteca stealth está disponível
+        if playwright_stealth:
+            await playwright_stealth.stealth(page)  # ✅ Agora está correto!
+        else:
+            logging.error("❌ playwright-stealth NÃO está disponível no ambiente!")
 
         # Aplicando Playwright-Stealth corretamente
-        await stealth(page)  # ✅ Agora está correto!
+        await stealth(page) 
 
         # Ajuste das configurações para cada site
         if site == "chavesnamao":
