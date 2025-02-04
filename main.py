@@ -33,7 +33,7 @@ async def fetch_html_with_playwright(url: str) -> str:
             # 🌎 Acessa a URL e aguarda o carregamento completo
             await page.goto(url, wait_until="load")
             await page.wait_for_load_state("networkidle")
-            await context.storage_state(path="state.json")
+            
             try:
                 await page.click("body")  # Clica no corpo da página para simular interação humana
             except:
@@ -49,6 +49,8 @@ async def fetch_html_with_playwright(url: str) -> str:
             # 🔍 Captura o HTML final renderizado
             html = await page.content()
 
+            await context.storage_state(path="state.json")
+            
             # 📌 Debug: Exibir os primeiros 3000 caracteres do HTML
             print("🔍 HTML capturado:")
             print(html[:10000])
