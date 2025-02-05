@@ -152,11 +152,20 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                window.chrome = { runtime: {} };
                Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
                Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'en-US'] });
-               const originalQuery = navigator.permissions.query;
-               navigator.permissions.query = (parameters) => (
-                   parameters && parameters.name === 'notifications' ? Promise.resolve({ state: 'denied' }) : originalQuery(parameters)
-                );
-            """)
+               const handler = {
+                   apply: function(target, thisArg, args) {
+                       if (args.length > 0 && args[0].name === 'notifications') {
+                           return Promise.resolve({ state: 'denied' });
+                       }
+                       return Reflect.apply(target, thisArg, args);
+                   }
+                };
+
+                const permissions = navigator.permissions.__proto__;
+                if (permissions && permissions.query) {
+                    permissions.query = new Proxy(permissions.query, handler);
+                }
+
 
             # Simula interações humanas para evitar bloqueio
             await page.mouse.move(200, 200)
