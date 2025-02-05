@@ -156,7 +156,7 @@ async def extract_property_code_chavesnamao(url_anuncio: str):
 @app.get("/extract-code/imovelweb/")
 async def extract_code_imovelweb(url_anuncio: str):
     """Extrai o código do imóvel do site ImovelWeb."""
-    html = await fetch_html_with_playwright(url_anuncio)
+    html = await fetch_html_with_playwright(url_anuncio, "imovelweb")
     match = re.search(r'publisher_house_id\s*=\s*"([\w-]+)"', html)
     if match:
         return {"codigo_imovel": match.group(1)}
