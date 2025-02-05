@@ -79,8 +79,8 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
                 bypass_csp=True,
                 storage_state="state.json",
-                permissions=["geolocation"],  # Algumas proteções verificam permissões
-                viewport={"width": 1280, "height": 720},  # Define um tamanho normal de tela
+                permissions=["geolocation", "notifications", "camera", "microphone"],
+                viewport={"width": 1280, "height": 720},
             )
             await context.add_init_script("""
                 Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
@@ -94,7 +94,14 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
 
             # Ajuste das configurações para cada site
             await page.goto(url, wait_until="domcontentloaded")
-            await page.wait_for_timeout(5000)  # Pequeno delay para evitar bloqueios
+            await page.wait_for_timeout(30000)  # Pequeno delay para evitar bloqueios
+
+            await page.evaluate("""
+                Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+                window.chrome = { runtime: {} };
+                Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
+                Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'en-US'] });
+            """)
 
             # Simula interações humanas para evitar bloqueio
             await page.mouse.move(200, 200)
