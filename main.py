@@ -91,26 +91,13 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
             await stealth_async(page)
 
             # Ajuste das configurações para cada site
-            if site == "chavesnamao":
-                await page.goto(url, wait_until="networkidle")
-                await page.wait_for_timeout(15000)
-                await page.mouse.move(200, 200)
-                await page.mouse.wheel(0, 300)
-                await page.keyboard.press("End")
+            await page.goto(url, wait_until="domcontentloaded")
+            await page.wait_for_timeout(5000)  # Pequeno delay para evitar bloqueios
 
-            elif site == "imovelweb":
-                await page.goto(url, wait_until="domcontentloaded")
-                await page.wait_for_timeout(15000)
-                await page.mouse.click(50, 50)  # Interação para desbloqueio
-                await page.mouse.wheel(0, 300)
-                await page.keyboard.press("End")
-
-            elif site == "buscacuritiba":
-                await page.goto(url, wait_until="load")
-                await page.wait_for_timeout(15000)
-                await page.mouse.click(50, 50)  # Interação para desbloqueio
-                await page.mouse.wheel(0, 300)
-                await page.keyboard.press("End")
+            # Simula interações humanas para evitar bloqueio
+            await page.mouse.move(200, 200)
+            await page.mouse.wheel(0, 300)
+            await page.keyboard.press("End")
 
             # Salva o estado atualizado no arquivo state.json
             await context.storage_state(path="state.json")
@@ -120,14 +107,21 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                 data = json.load(f)
                 logging.info("Conteúdo do state.json:\n%s", json.dumps(data, indent=2))
 
+            # Captura o HTML da página
             html = await page.content()
+
+            # **Verifica se foi bloqueado pela Cloudflare**
+            if "Just a moment" in html or "challenge-platform" in html:
+                logging.error("🚨 Página bloqueada pela Cloudflare!")
+                raise HTTPException(status_code=403, detail="Página bloqueada pela Cloudflare")
+
             await browser.close()
 
-            logging.info("HTML extraído com sucesso.")
-            print(html[:5000])
+            logging.info("✅ HTML extraído com sucesso.")
+            print(html[:5000])  # Exibe uma parte do HTML para debug
             return html
     except Exception as e:
-        logging.error(f"Erro em fetch_html_with_playwright: {e}")
+        logging.error(f"❌ Erro em fetch_html_with_playwright: {e}")
         raise e
 
 # ------------------------------------------------------------------------------
