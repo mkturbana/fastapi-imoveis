@@ -130,19 +130,32 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
 
             # Ajuste das configurações para cada site
             await page.goto(url, wait_until="domcontentloaded")
-            await page.wait_for_timeout(30000)  # Pequeno delay para evitar bloqueios
+            await page.wait_for_timeout(random.randint(5000, 15000))  # Pequeno delay para evitar bloqueios
 
-            # Simula interações humanas para evitar bloqueio
-            await page.mouse.move(200, 200)
-            await page.mouse.wheel(0, 400)
+            # Simular rolagem na página para carregar dinamicamente
+            for _ in range(3):
+                await page.mouse.wheel(0, random.randint(300, 600))
+                await page.wait_for_timeout(random.randint(1000, 3000))
+
+            # Movimentar o mouse para áreas diferentes da página
+            await page.mouse.move(random.randint(100, 800), random.randint(100, 600))
+            await page.wait_for_timeout(random.randint(2000, 5000))
+
+            # Simular teclas pressionadas
+            await page.keyboard.press("PageDown")
+            await page.wait_for_timeout(random.randint(3000, 5000))
+
             await page.keyboard.press("End")
-            await page.wait_for_timeout(5000)  # Espera extra para carregamento
 
             await page.evaluate("""
                delete Object.getPrototypeOf(navigator).webdriver;
                window.chrome = { runtime: {} };
                Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
                Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'en-US'] });
+               const originalQuery = navigator.permissions.query;
+               navigator.permissions.query = (parameters) => (
+                   parameters.name === 'notifications' ? Promise.resolve({ state: 'denied' }) : originalQuery(parameters)
+                );
             """)
 
             # Simula interações humanas para evitar bloqueio
