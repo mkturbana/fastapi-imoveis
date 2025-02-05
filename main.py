@@ -67,7 +67,7 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
     try:
         async with async_playwright() as p:
             # Para depuração, você pode alterar headless para False
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(headless=False)
 
             # Criar state.json vazio se não existir
             if not os.path.exists("state.json"):
@@ -80,7 +80,8 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                 bypass_csp=True,
                 storage_state="state.json",
                 permissions=["geolocation", "notifications", "camera", "microphone"],
-                viewport={"width": 1280, "height": 720},
+                viewport={"width": 1366, "height": 768},
+                locale="pt-BR",
             )
             await context.add_init_script("""
                 Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
@@ -107,7 +108,7 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
 
             # Simula interações humanas para evitar bloqueio
             await page.mouse.move(200, 200)
-            await page.mouse.wheel(0, 300)
+            await page.mouse.wheel(0, 400)
             await page.keyboard.press("End")
             await page.wait_for_timeout(5000)  # Espera extra para carregamento
 
