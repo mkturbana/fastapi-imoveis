@@ -154,7 +154,7 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'en-US'] });
                const originalQuery = navigator.permissions.query;
                navigator.permissions.query = (parameters) => (
-                   parameters.name === 'notifications' ? Promise.resolve({ state: 'denied' }) : originalQuery(parameters)
+                   parameters && parameters.name === 'notifications' ? Promise.resolve({ state: 'denied' }) : originalQuery(parameters)
                 );
             """)
 
