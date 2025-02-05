@@ -132,19 +132,51 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
 
 # ------------------------------------------------------------------------------
 @app.get("/extract-code/chavesnamao/")
-async def extract_chavesnamao(url_anuncio: str):
-    html = await fetch_html_with_playwright(url_anuncio, "chavesnamao")
-    return {"html": html}
+async def extract_property_code_chavesnamao(url_anuncio: str):
+    """Extrai o código do imóvel da página do Chaves na Mão."""
+    html = await fetch_html_with_playwright(url_anuncio)
+    soup = BeautifulSoup(html, "html.parser")
 
+    # 🔍 1. Tenta encontrar o código dentro de um comentário HTML
+    comments = soup.find_all(string=lambda text: isinstance(text, Comment))
+    for comment in comments:
+        match = re.search(r"Ref:\s*([\w-]+)", comment)
+        if match:
+            return {"codigo_imovel": match.group(1)}
+
+    # 🔍 2. Tenta encontrar o código dentro de meta tags ou textos normais
+    match = re.search(r"ref:\s*do imóvel[:\s]*([\w-]+)", html, re.IGNORECASE)
+    if match:
+        return {"codigo_imovel": match.group(1)}
+
+    # Se não encontrar, retorna erro
+    raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
+
+# 🔎 Extração de código do imóvel - ImovelWeb
 @app.get("/extract-code/imovelweb/")
-async def extract_imovelweb(url_anuncio: str):
-    html = await fetch_html_with_playwright(url_anuncio, "imovelweb")
-    return {"html": html}
+async def extract_code_imovelweb(url_anuncio: str):
+    """Extrai o código do imóvel do site ImovelWeb."""
+    html = await fetch_html_with_playwright(url_anuncio)
+    match = re.search(r'publisher_house_id\s*=\s*"([\w-]+)"', html)
+    if match:
+        return {"codigo_imovel": match.group(1)}
+    raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
 
+
+# 🔎 Extração de código do imóvel - Busca Curitiba
 @app.get("/extract-code/buscacuritiba/")
-async def extract_buscacuritiba(url_anuncio: str):
-    html = await fetch_html_with_playwright(url_anuncio, "buscacuritiba")
-    return {"html": html}
+async def extract_code_buscacuritiba(url_anuncio: str):
+    """Extrai o código do imóvel do site Busca Curitiba."""
+    html = await fetch_html_with_playwright(url_anuncio)
+    soup = BeautifulSoup(html, "html.parser")
+    reference_element = soup.find("p", string=re.compile("Referência:", re.IGNORECASE))
+    if reference_element:
+        strong_tag = reference_element.find("strong")
+        property_code = strong_tag.text.strip() if strong_tag else None
+        if property_code:
+            return {"codigo_imovel": property_code}
+
+    raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
 
 # ------------------------------------------------------------------------------
 # Endpoint para buscar informações do imóvel a partir do XML
