@@ -160,6 +160,7 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                        return Reflect.apply(target, thisArg, args);
                    }
                 };
+            """)
 
             if (navigator.permissions) {
                const permissions = Object.getPrototypeOf(navigator.permissions);
