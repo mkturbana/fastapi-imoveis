@@ -97,7 +97,8 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
             await page.wait_for_timeout(30000)  # Pequeno delay para evitar bloqueios
 
             await page.evaluate("""
-                Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+                delete Object.getPrototypeOf(navigator).webdriver;
+            """)
                 window.chrome = { runtime: {} };
                 Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
                 Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'en-US'] });
