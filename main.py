@@ -250,7 +250,7 @@ async def extract_code_buscacuritiba(url_anuncio: str):
 # Endpoint para buscar informações do imóvel a partir do XML
 @app.get("/fetch-xml/")
 async def fetch_property_info(property_code: str):
-    """Busca informações do imóvel no XML usando o código extraído."""
+    
     xml_url = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afecd2c0b"
     try:
         response = httpx.get(xml_url)
