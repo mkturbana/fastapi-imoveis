@@ -82,7 +82,9 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                 permissions=["geolocation"],  # Algumas proteções verificam permissões
                 viewport={"width": 1280, "height": 720},  # Define um tamanho normal de tela
             )
-            await context.add_init_script("navigator.webdriver = undefined")  # Remove a flag de automação
+            await context.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            """)
 
             page = await context.new_page()
 
@@ -98,6 +100,7 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
             await page.mouse.move(200, 200)
             await page.mouse.wheel(0, 300)
             await page.keyboard.press("End")
+            await page.wait_for_timeout(5000)
 
             # Salva o estado atualizado no arquivo state.json
             await context.storage_state(path="state.json")
