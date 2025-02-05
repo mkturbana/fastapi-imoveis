@@ -92,9 +92,24 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
             logging.info("Aplicando stealth...")
             await stealth_async(page)
 
+            # Adicionando script para evitar detecção
+            script = """
+                delete Object.getPrototypeOf(navigator).webdriver;
+                window.chrome = { runtime: {} };
+                Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
+                Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'en-US'] });
+            """
+            await page.evaluate(json.dumps(script))  # Adicionando o script
+
             # Ajuste das configurações para cada site
             await page.goto(url, wait_until="domcontentloaded")
             await page.wait_for_timeout(30000)  # Pequeno delay para evitar bloqueios
+
+            # Simula interações humanas para evitar bloqueio
+            await page.mouse.move(200, 200)
+            await page.mouse.wheel(0, 300)
+            await page.keyboard.press("End")
+            await page.wait_for_timeout(5000)  # Espera extra para carregamento
 
             await page.evaluate("""
                delete Object.getPrototypeOf(navigator).webdriver;
