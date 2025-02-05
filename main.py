@@ -234,7 +234,6 @@ async def extract_code_imovelweb(url_anuncio: str):
 # 🔎 Extração de código do imóvel - Busca Curitiba
 @app.get("/extract-code/buscacuritiba/")
 async def extract_code_buscacuritiba(url_anuncio: str):
-    """Extrai o código do imóvel do site Busca Curitiba."""
     html = await fetch_html_with_playwright(url_anuncio)
     soup = BeautifulSoup(html, "html.parser")
     reference_element = soup.find("p", string=re.compile("Referência:", re.IGNORECASE))
