@@ -165,7 +165,7 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                 if (permissions && permissions.query) {
                     permissions.query = new Proxy(permissions.query, handler);
                 }
-
+            """)
 
             # Simula interações humanas para evitar bloqueio
             await page.mouse.move(200, 200)
