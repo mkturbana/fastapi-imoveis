@@ -161,10 +161,12 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                    }
                 };
 
-                const permissions = navigator.permissions.__proto__;
-                if (permissions && permissions.query) {
-                    permissions.query = new Proxy(permissions.query, handler);
-                }
+            if (navigator.permissions) {
+               const permissions = Object.getPrototypeOf(navigator.permissions);
+               if (permissions && permissions.query) {
+                   permissions.query = new Proxy(permissions.query, handler);
+               }
+            }
             """)
 
             # Simula interações humanas para evitar bloqueio
