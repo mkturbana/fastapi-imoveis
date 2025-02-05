@@ -162,16 +162,14 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                 };
             """)
 
-            if (navigator.permissions) {
-               const permissions = Object.getPrototypeOf(navigator.permissions);
-            if (navigator.permissions) {
-               const originalQuery = navigator.permissions.query;
-               navigator.permissions.query = (parameters) => {
-                   if (parameters.name === 'notifications') {
+           if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+              const originalQuery = navigator.permissions.query.bind(navigator.permissions);
+              navigator.permissions.query = (parameters) => {
+                  if (parameters && parameters.name === 'notifications') {
                       return Promise.resolve({ state: 'denied' });
-                   }
-                   return originalQuery(parameters);
-               };
+                  }
+                  return originalQuery(parameters);
+              };
             }
 
             # Simula interações humanas para evitar bloqueio
