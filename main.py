@@ -134,7 +134,7 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
 @app.get("/extract-code/chavesnamao/")
 async def extract_property_code_chavesnamao(url_anuncio: str):
     """Extrai o código do imóvel da página do Chaves na Mão."""
-    html = await fetch_html_with_playwright(url_anuncio)
+    html = await fetch_html_with_playwright(url_anuncio, "chavesnamao")
     soup = BeautifulSoup(html, "html.parser")
 
     # 🔍 1. Tenta encontrar o código dentro de um comentário HTML
