@@ -201,7 +201,6 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
 # ------------------------------------------------------------------------------
 @app.get("/extract-code/chavesnamao/")
 async def extract_property_code_chavesnamao(url_anuncio: str):
-    """Extrai o código do imóvel da página do Chaves na Mão."""
     html = await fetch_html_with_playwright(url_anuncio, "chavesnamao")
     soup = BeautifulSoup(html, "html.parser")
 
@@ -223,13 +222,11 @@ async def extract_property_code_chavesnamao(url_anuncio: str):
 # 🔎 Extração de código do imóvel - ImovelWeb
 @app.get("/extract-code/imovelweb/")
 async def extract_code_imovelweb(url_anuncio: str):
-    """Extrai o código do imóvel do site ImovelWeb."""
     html = await fetch_html_with_playwright(url_anuncio, "imovelweb")
     match = re.search(r'publisher_house_id\s*=\s*"([\w-]+)"', html)
     if match:
         return {"codigo_imovel": match.group(1)}
     raise HTTPException(status_code=404, detail="Código do imóvel não encontrado no HTML.")
-
 
 # 🔎 Extração de código do imóvel - Busca Curitiba
 @app.get("/extract-code/buscacuritiba/")
