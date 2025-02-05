@@ -7,6 +7,7 @@ import re
 import os
 import json
 import httpx
+import random
 import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
@@ -14,6 +15,14 @@ from starlette.requests import Request
 from playwright.async_api import async_playwright
 from playwright_stealth import stealth_async
 from bs4 import BeautifulSoup, Comment
+
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36"
+]
 
 app = FastAPI()
 
@@ -75,13 +84,21 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                     f.write('{"cookies": [], "origins": []}')
                 logging.info("Arquivo state.json foi criado.")
 
+            user_agent = random.choice(USER_AGENTS)
+
             context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+                user_agent=user_agent,
                 bypass_csp=True,
                 storage_state="state.json",
                 permissions=["geolocation", "notifications", "camera", "microphone"],
                 viewport={"width": 1366, "height": 768},
                 locale="pt-BR",
+                extra_http_headers={
+                    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+                    "Referer": url,
+                    "DNT": "1",
+                    "Upgrade-Insecure-Requests": "1"
+                }
             )
             await context.add_init_script("""
                 Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
@@ -89,6 +106,15 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
 
             page = await context.new_page()
 
+            await page.set_extra_http_headers({
+                "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Referer": url,
+                "DNT": "1",
+                "Upgrade-Insecure-Requests": "1",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Dest": "document"
+            })
+            
             # Aplicando Playwright-Stealth
             logging.info("Aplicando stealth...")
             await stealth_async(page)
