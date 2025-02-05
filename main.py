@@ -148,19 +148,21 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
             await page.keyboard.press("End")
 
             await page.evaluate("""
-               delete Object.getPrototypeOf(navigator).webdriver;
-               window.chrome = { runtime: {} };
-               Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
-               Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'en-US'] });
-               const handler = {
-                   apply: function(target, thisArg, args) {
-                       if (args.length > 0 && args[0] && args[0].name === 'notifications') {
+                delete Object.getPrototypeOf(navigator).webdriver;
+                window.chrome = { runtime: {} };
+                Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
+                Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'en-US'] });
+
+                if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+                   const originalQuery = navigator.permissions.query.bind(navigator.permissions);
+                   navigator.permissions.query = (parameters) => {
+                       if (parameters && parameters.name === 'notifications') {
                            return Promise.resolve({ state: 'denied' });
                        }
-                       return Reflect.apply(target, thisArg, args);
-                   }
-                };
-            """)
+                       return originalQuery(parameters);
+                   };
+               }
+           """)
 
            if (navigator.permissions && typeof navigator.permissions.query === 'function') {
               const originalQuery = navigator.permissions.query.bind(navigator.permissions);
