@@ -100,19 +100,19 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                 Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
                 Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'en-US'] });
 
-            if (navigator.permissions && typeof navigator.permissions.query === 'function') {
-                const originalQuery = navigator.permissions.query.bind(navigator.permissions);
-                navigator.permissions.query = (parameters) => {
-                    if (!parameters || typeof parameters !== 'object') {
-                        parameters = {}; // Garante que sempre seja um objeto
-                    }
-                    if ('name' in parameters && parameters.name === 'notifications') {
-                        return Promise.resolve({ state: 'denied' });
-                    }
-                    return originalQuery(parameters);
-                };
-            }
-            """)
+                if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+                   const originalQuery = navigator.permissions.query.bind(navigator.permissions);
+                   navigator.permissions.query = (parameters = {}) => { // Garantindo que parameters seja um objeto
+                       if (typeof parameters !== 'object' || parameters === null) {
+                           parameters = {}; // Evita erro ao acessar 'name'
+                       }
+                       if ('name' in parameters && parameters.name === 'notifications') {
+                           return Promise.resolve({ state: 'denied' });
+                       }
+                       return originalQuery(parameters);
+                   };
+                 }
+            """);
 
             await page.goto(url, wait_until="domcontentloaded")
             await page.wait_for_timeout(random.randint(5000, 15000))
