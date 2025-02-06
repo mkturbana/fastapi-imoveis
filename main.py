@@ -100,54 +100,54 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
                 Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
                 Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'en-US'] });
 
-                if (navigator.permissions && typeof navigator.permissions.query === 'function') {
-                    const originalQuery = navigator.permissions.query.bind(navigator.permissions);
-                    navigator.permissions.query = (parameters) => { 
-                        if (!parameters || typeof parameters !== 'object' || !parameters.name) { 
-                            return Promise.reject(new TypeError("Invalid parameter for permissions.query"));
-                        }
-                        if (parameters.name === 'notifications') {
-                            return Promise.resolve({ state: 'denied' });
-                        }
-                        return originalQuery(parameters);
-                    };
-                } 
-            """)
+            if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+                const originalQuery = navigator.permissions.query.bind(navigator.permissions);
+                navigator.permissions.query = (parameters) => { 
+                    if (!parameters || typeof parameters !== 'object' || !parameters.name) { 
+                        return Promise.reject(new TypeError("Invalid parameter for permissions.query"));
+                     }
+                     if (parameters.name === 'notifications') {
+                         return Promise.resolve({ state: 'denied' });
+                     }
+                     return originalQuery(parameters);
+                 };
+            } 
+        """);
 
-            await page.goto(url, wait_until="domcontentloaded")
-            await page.wait_for_timeout(random.randint(5000, 15000))
+             await page.goto(url, wait_until="domcontentloaded")
+             await page.wait_for_timeout(random.randint(5000, 15000))
 
-            for _ in range(3):
-                await page.mouse.wheel(0, random.randint(300, 600))
-                await page.wait_for_timeout(random.randint(1000, 3000))
+             for _ in range(3):
+                 await page.mouse.wheel(0, random.randint(300, 600))
+                 await page.wait_for_timeout(random.randint(1000, 3000))
 
-            await page.mouse.move(random.randint(100, 800), random.randint(100, 600))
-            await page.wait_for_timeout(random.randint(2000, 5000))
+             await page.mouse.move(random.randint(100, 800), random.randint(100, 600))
+             await page.wait_for_timeout(random.randint(2000, 5000))
 
-            await page.keyboard.press("PageDown")
-            await page.wait_for_timeout(random.randint(3000, 5000))
+             await page.keyboard.press("PageDown")
+             await page.wait_for_timeout(random.randint(3000, 5000))
 
-            await page.keyboard.press("End")
+             await page.keyboard.press("End")
 
-            await context.storage_state(path="state.json")
+             await context.storage_state(path="state.json")
 
-            with open("state.json", "r") as f:
-                data = json.load(f)
-                logging.info("Conteúdo do state.json:\n%s", json.dumps(data, indent=2))
+             with open("state.json", "r") as f:
+                 data = json.load(f)
+                 logging.info("Conteúdo do state.json:\n%s", json.dumps(data, indent=2))
 
-            html = await page.content()
+             html = await page.content()
 
-            if "Just a moment" in html or "challenge-platform" in html:
-                logging.error("🚨 Página bloqueada pela Cloudflare!")
-                raise HTTPException(status_code=403, detail="Página bloqueada pela Cloudflare")
+             if "Just a moment" in html or "challenge-platform" in html:
+                 logging.error("🚨 Página bloqueada pela Cloudflare!")
+                 raise HTTPException(status_code=403, detail="Página bloqueada pela Cloudflare")
 
-            await browser.close()
+             await browser.close()
 
-            logging.info("✅ HTML extraído com sucesso.")
-            return html
-    except Exception as e:
-        logging.error(f"❌ Erro em fetch_html_with_playwright: {e}")
-        raise e
+             logging.info("✅ HTML extraído com sucesso.")
+             return html
+     except Exception as e:
+         logging.error(f"❌ Erro em fetch_html_with_playwright: {e}")
+         raise e
 
 @app.get("/extract-code/imovelweb/")
 async def extract_code_imovelweb(url_anuncio: str):
