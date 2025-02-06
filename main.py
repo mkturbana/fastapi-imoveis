@@ -102,11 +102,11 @@ async def fetch_html_with_playwright(url: str, site: str) -> str:
 
                 if (navigator.permissions && typeof navigator.permissions.query === 'function') {
                    const originalQuery = navigator.permissions.query.bind(navigator.permissions);
-                   navigator.permissions.query = (parameters) => {
-                       if (parameter && typeof parameters === 'object' && parameters.name === 'notifications') {
+                   navigator.permissions.query = (parameters = {}) => {
+                       if (typeof parameters === 'object' && parameters !== null && parameters.name === 'notifications') {
                            return Promise.resolve({ state: 'denied' });
                        }
-                       return originalQuery(parameters || {});
+                       return originalQuery(parameters);
                    };
                }
             """)
