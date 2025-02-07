@@ -42,4 +42,5 @@ async def extract_code(url: str, site: str):
 @app.get("/fetch-xml/")
 async def fetch_property_info(property_code: str):
     """Busca informações do imóvel no XML usando o código extraído."""
-    xml_url = "https://redeurbana.com.br/imoveis/rede/c628
+    xml_url = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afecd2c0b"
+
