@@ -45,7 +45,7 @@ async def extract_code(url: str, site: str):
     if not codigo:
         raise HTTPException(status_code=404, detail="Código do imóvel não encontrado.")
 
-    return {"site": site, "codigo_imovel": codigo}
+    return {"codigo_imovel": codigo}
 
 @app.get("/fetch-xml/")
 async def fetch_property_info(property_code: str):
