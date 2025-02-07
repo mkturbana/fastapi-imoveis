@@ -1,5 +1,31 @@
+import os
+import logging
+from playwright.async_api import async_playwright
+from playwright_stealth import stealth_async
+from fastapi import HTTPException
+
+# Criar pasta de usuário para armazenar cookies e histórico
+USER_DATA_DIR = "user_data"
+
+browser_instance = None  # Variável global para manter o navegador aberto
+
+async def get_browser():
+    """Inicia um navegador real com persistência de dados."""
+    global browser_instance
+    if not browser_instance:
+        logging.info("🔵 Iniciando navegador real com persistência de dados...")
+
+        p = await async_playwright().start()
+        
+        browser_instance = await p.chromium.launch_persistent_context(
+            user_data_dir=USER_DATA_DIR,  # 🔴 Mantém cookies e login!
+            headless=False,  # 🔴 Rode visível primeiro para testar
+            args=["--disable-blink-features=AutomationControlled"],  # 🔴 Evita detecção
+        )
+    return browser_instance
+
 async def fetch_html_with_playwright(url: str) -> str:
-    """Captura o HTML da página antes de extrair o código."""
+    """Captura o HTML da página evitando bloqueios e mantendo sessão."""
     browser = await get_browser()
     page = await browser.new_page()
 
