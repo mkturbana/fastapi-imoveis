@@ -10,7 +10,7 @@ USER_DATA_DIR = "user_data"
 browser_instance = None  # Variável global para manter o navegador aberto
 
 async def get_browser():
-    """Inicia um navegador real com persistência de dados."""
+    """Inicia um navegador Playwright com um User-Agent realista."""
     global browser_instance
     if not browser_instance:
         logging.info("🔵 Iniciando navegador Playwright em modo headless...")
@@ -18,10 +18,17 @@ async def get_browser():
         p = await async_playwright().start()
         
         browser_instance = await p.chromium.launch_persistent_context(
-            user_data_dir=USER_DATA_DIR,  
-            headless=True,  # 🔴 Agora rodando em modo headless para evitar erro no servidor
-            args=["--disable-blink-features=AutomationControlled"],  
+            user_data_dir=USER_DATA_DIR,
+            headless=True,
+            args=["--disable-blink-features=AutomationControlled"],
         )
+
+        # Definir um User-Agent mais realista
+        await browser_instance.add_init_script("""
+            navigator.__defineGetter__('userAgent', () => 
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
+        """)
+
     return browser_instance
 
 async def fetch_html_with_playwright(url: str) -> str:
@@ -41,7 +48,7 @@ async def fetch_html_with_playwright(url: str) -> str:
     try:
         logging.info(f"🔍 Acessando página: {url}")
         await page.goto(url, wait_until="domcontentloaded")
-        await page.wait_for_timeout(5000)  # Pequena espera inicial
+        await page.wait_for_timeout(6000)  # Pequena espera inicial
 
         # 🔹 Simulação de interações humanas
         logging.info("👨‍💻 Simulando interações humanas...")
