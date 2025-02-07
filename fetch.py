@@ -1,50 +1,35 @@
 import os
-import json
 import logging
 from playwright.async_api import async_playwright
 from playwright_stealth import stealth_async
 from fastapi import HTTPException
 
-# Criar state.json se não existir
-if not os.path.exists("state.json"):
-    with open("state.json", "w") as f:
-        f.write('{"cookies": [], "origins": []}')
-    logging.info("Arquivo state.json criado.")
+# Criar pasta de usuário para armazenar dados do navegador (cookies, histórico, etc.)
+USER_DATA_DIR = "user_data"
 
-# Criar um navegador persistente para evitar fechamento prematuro
-browser_instance = None
-context_instance = None
+browser_instance = None  # Variável global para manter o navegador aberto
 
 async def get_browser():
-    global browser_instance, context_instance
+    """Inicia um navegador real com persistência de dados."""
+    global browser_instance
     if not browser_instance:
-        logging.info("🔵 Iniciando navegador Playwright...")
+        logging.info("🔵 Iniciando navegador real com persistência de dados...")
+
         p = await async_playwright().start()
-        browser_instance = await p.chromium.launch(headless=True)
-        context_instance = await browser_instance.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-            bypass_csp=True,
-            storage_state="state.json",
-            viewport={"width": 1280, "height": 720},
-            extra_http_headers={
-                "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
-                "Referer": "https://www.google.com/",
-                "DNT": "1",
-                "Upgrade-Insecure-Requests": "1",
-                "Sec-Fetch-Site": "same-origin",
-                "Sec-Fetch-Mode": "navigate",
-                "Sec-Fetch-User": "?1",
-                "Sec-Fetch-Dest": "document"
-            }
+        
+        browser_instance = await p.chromium.launch_persistent_context(
+            user_data_dir=USER_DATA_DIR,  # 🔴 Mantém cookies e login!
+            headless=False,  # 🔴 Rode visível primeiro para testar
+            args=["--disable-blink-features=AutomationControlled"],  # 🔴 Evita detecção
         )
-    return browser_instance, context_instance
+    return browser_instance
 
 async def fetch_html_with_playwright(url: str) -> str:
-    """Captura o HTML da página evitando bloqueios e simulando interações humanas."""
-    browser, context = await get_browser()
-    page = await context.new_page()
+    """Captura o HTML da página evitando bloqueios e mantendo sessão."""
+    browser = await get_browser()
+    page = await browser.new_page()
 
-    # Ativando Playwright-Stealth para evitar detecção
+    # 🔹 Ativando Playwright-Stealth para evitar detecção
     await stealth_async(page)
     await page.evaluate("""
         Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
@@ -56,21 +41,18 @@ async def fetch_html_with_playwright(url: str) -> str:
     try:
         logging.info(f"🔍 Acessando página: {url}")
         await page.goto(url, wait_until="domcontentloaded")
-        await page.wait_for_timeout(3000)  # Pequena espera inicial
+        await page.wait_for_timeout(5000)  # Pequena espera inicial
 
-        # 🔹 Simulação de interações humanas para evitar bloqueio
+        # 🔹 Simulação de interações humanas
         logging.info("👨‍💻 Simulando interações humanas...")
         await page.mouse.move(200, 200)
         await page.wait_for_timeout(1000)
-
         await page.mouse.wheel(0, 500)  # Scroll para baixo
         await page.wait_for_timeout(2000)
-
         await page.keyboard.press("ArrowDown")
         await page.keyboard.press("ArrowDown")
         await page.keyboard.press("ArrowDown")
         await page.wait_for_timeout(2000)
-
         await page.keyboard.press("End")  # Rolar até o final da página
         await page.wait_for_timeout(3000)
 
