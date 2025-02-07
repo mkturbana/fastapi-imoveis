@@ -13,14 +13,14 @@ async def get_browser():
     """Inicia um navegador real com persistência de dados."""
     global browser_instance
     if not browser_instance:
-        logging.info("🔵 Iniciando navegador real com persistência de dados...")
+        logging.info("🔵 Iniciando navegador Playwright em modo headless...")
 
         p = await async_playwright().start()
         
         browser_instance = await p.chromium.launch_persistent_context(
-            user_data_dir=USER_DATA_DIR,  # 🔴 Mantém cookies e login!
-            headless=False,  # 🔴 Rode visível primeiro para testar
-            args=["--disable-blink-features=AutomationControlled"],  # 🔴 Evita detecção
+            user_data_dir=USER_DATA_DIR,  
+            headless=True,  # 🔴 Agora rodando em modo headless para evitar erro no servidor
+            args=["--disable-blink-features=AutomationControlled"],  
         )
     return browser_instance
 
