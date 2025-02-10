@@ -31,7 +31,7 @@ async def extract_url_from_message(message: str):
 @app.get("/detect-site/")
 async def detect_site(url: str):
     """Detecta o site a partir da URL."""
-    match = re.search(r"https?://(?:www\.)?([^/]+)", url)
+    match = re.search(r"https?://(?:www\.)?([^/.]+)", url)
     if match:
         return {"site_detectado": match.group(1)}
     raise HTTPException(status_code=400, detail="URL inválida.")
