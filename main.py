@@ -38,6 +38,8 @@ async def detect_site(url: str):
 
 @app.get("/extract-code/")
 async def extract_code(url: str, site: str):
+    print(f"URL recebida: {url}")
+    print(f"Site recebido: {site}")
     """Extrai o código do imóvel de acordo com o site informado."""
     html = await fetch_html_with_playwright(url)
     codigo = extract_property_code(html, site)
