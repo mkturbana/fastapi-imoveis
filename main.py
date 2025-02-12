@@ -4,15 +4,17 @@ import json
 import httpx
 import logging
 import asyncio
+import aiohttp
 from bs4 import BeautifulSoup
 from starlette.requests import Request
 from fastapi.responses import Response, JSONResponse
 from fetch import fetch_html_with_playwright
 from extractors import extract_property_code
-from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, Depends
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 from exceptions import http_exception_handler, custom_exception_handler
+from cachetools import TTLCache
 
 app = FastAPI()
 
@@ -24,6 +26,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logging.info("API Iniciada!")
 
 XML_URL = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afecd2c0b"
+
+# Cache para armazenar o XML por 60 segundos
+xml_cache = TTLCache(maxsize=1, ttl=60)
 
 # 🔄 Função para manter o servidor ativo no Render
 async def keep_alive_task():
@@ -103,57 +108,44 @@ async def extract_code(url: str, site: str):
     logging.info(f"✅ Código do imóvel extraído: {codigo}")
     return {"codigo_imovel": codigo}
 
-# 🔍 Função auxiliar para buscar detalhes no XML
-async def get_property_info(property_code: str):
-    """Busca os detalhes do imóvel no XML usando o código extraído."""
+# 🔍 Função auxiliar para buscar detalhes no XML com cache
+async def fetch_xml_data():
+    """Baixa o XML e armazena no cache para otimizar múltiplas chamadas."""
+    if "xml_data" in xml_cache:
+        return xml_cache["xml_data"]
+
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(XML_URL, timeout=10)
-            response.raise_for_status()
-
-        soup = BeautifulSoup(response.text, "xml")
-        property_info = soup.find("ListingID", string=property_code)
-
-        if not property_info:
-            raise HTTPException(status_code=404, detail="Imóvel não encontrado no XML.")
-
-        listing = property_info.find_parent("Listing")
-        return listing.find("ContactInfo") if listing else None
-
-    except httpx.HTTPStatusError as e:
-        logging.error(f"Erro HTTP ao acessar XML: {e}")
-        raise HTTPException(status_code=e.response.status_code, detail="Erro ao acessar XML.")
+        async with aiohttp.ClientSession() as session:
+            async with session.get(XML_URL, timeout=5) as response:
+                response.raise_for_status()
+                xml_data = await response.text()
+                xml_cache["xml_data"] = xml_data  # Salva no cache
+                return xml_data
     except Exception as e:
-        logging.exception(f"Erro ao buscar XML: {e}")
-        raise HTTPException(status_code=500, detail="Erro interno ao processar XML.")
+        logging.error(f"Erro ao baixar XML: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar XML.")
 
-# 🔹 Endpoints separados para obter dados individuais
-@app.get("/fetch-realtor-name/")
-async def fetch_realtor_name(property_code: str):
-    """Retorna apenas o nome da imobiliária."""
-    contact_info = await get_property_info(property_code)
+async def get_property_info_optimized(property_code: str, xml_data: str):
+    """Busca os detalhes do imóvel no XML usando caching para melhor performance."""
+    soup = BeautifulSoup(xml_data, "xml")
+    property_info = soup.find("ListingID", string=property_code)
+
+    if not property_info:
+        raise HTTPException(status_code=404, detail="Imóvel não encontrado no XML.")
+
+    listing = property_info.find_parent("Listing")
+    return listing.find("ContactInfo") if listing else None
+
+# 🔹 Endpoint único para obter todas as informações do imóvel
+@app.get("/fetch-xml/")
+async def fetch_xml(property_code: str, xml_data: str = Depends(fetch_xml_data)):
+    """Retorna todas as informações da imobiliária em uma única requisição, usando cache para otimizar a resposta."""
+    contact_info = await get_property_info_optimized(property_code, xml_data)
     if not contact_info:
         raise HTTPException(status_code=404, detail="Detalhes do imóvel não encontrados.")
 
-    realtor_name = contact_info.find("Name").text if contact_info.find("Name") else "Não informado"
-    return {"realtor_name": realtor_name}
-
-@app.get("/fetch-realtor-email/")
-async def fetch_realtor_email(property_code: str):
-    """Retorna apenas o e-mail da imobiliária."""
-    contact_info = await get_property_info(property_code)
-    if not contact_info:
-        raise HTTPException(status_code=404, detail="Detalhes do imóvel não encontrados.")
-
-    realtor_email = contact_info.find("Email").text if contact_info.find("Email") else "Não informado"
-    return {"realtor_email": realtor_email}
-
-@app.get("/fetch-realtor-phone/")
-async def fetch_realtor_phone(property_code: str):
-    """Retorna apenas o telefone da imobiliária."""
-    contact_info = await get_property_info(property_code)
-    if not contact_info:
-        raise HTTPException(status_code=404, detail="Detalhes do imóvel não encontrados.")
-
-    realtor_phone = contact_info.find("Telephone").text if contact_info.find("Telephone") else "Não informado"
-    return {"realtor_phone": realtor_phone}
+    return {
+        "realtor_name": contact_info.find("Name").text if contact_info.find("Name") else "Não informado",
+        "realtor_email": contact_info.find("Email").text if contact_info.find("Email") else "Não informado",
+        "realtor_phone": contact_info.find("Telephone").text if contact_info.find("Telephone") else "Não informado",
+    }
