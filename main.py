@@ -35,11 +35,11 @@ class LogMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         
         # Criar uma cópia segura da resposta
-        response_body = [chunk async for chunk in response.body_iterator]
-        response.body_iterator = (chunk for chunk in response_body)
+        response_body = b"".join([chunk async for chunk in response.body_iterator])
+        response.body_iterator = iter([response_body])
 
         try:
-            response_content = b"".join(response_body).decode()
+            response_content = response_body.decode()
             logging.info(f"✅ RESPOSTA: {response.status_code} - {response_content}")
         except Exception as e:
             logging.warning(f"⚠️ Erro ao capturar a resposta: {e}")
