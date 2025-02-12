@@ -1,9 +1,11 @@
-import logging
 import re
+import json
 import httpx
-from fastapi import FastAPI, HTTPException
+import logging
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
+from starlette.middleware.base import BaseHTTPMiddleware
 from bs4 import BeautifulSoup
 from exceptions import http_exception_handler, custom_exception_handler
 from fetch import fetch_html_with_playwright
@@ -15,8 +17,37 @@ app = FastAPI()
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(Exception, custom_exception_handler)
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logging.info("API Iniciada!")
+
+class LogMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        logging.info(f"🔹 RECEBENDO REQUISIÇÃO: {request.method} {request.url}")
+
+        try:
+            body = await request.body()
+            if body:
+                logging.info(f"📩 Corpo da Requisição: {body.decode('utf-8')}")
+        except Exception as e:
+            logging.warning(f"⚠️ Erro ao capturar o corpo da requisição: {e}")
+
+        # Processar a requisição
+        response = await call_next(request)
+        
+        # Criar uma cópia segura da resposta
+        response_body = [chunk async for chunk in response.body_iterator]
+        response.body_iterator = (chunk for chunk in response_body)
+
+        try:
+            response_content = b"".join(response_body).decode()
+            logging.info(f"✅ RESPOSTA: {response.status_code} - {response_content}")
+        except Exception as e:
+            logging.warning(f"⚠️ Erro ao capturar a resposta: {e}")
+
+        return response
+
+# Adiciona o middleware na API
+app.add_middleware(LogMiddleware)
 
 # ------------------------------------------------------------------------------
 
@@ -42,6 +73,9 @@ async def extract_code(url: str, site: str):
     print(f"Site recebido: {site}")
     """Extrai o código do imóvel de acordo com o site informado."""
     html = await fetch_html_with_playwright(url)
+    if not html:
+        raise HTTPException(status_code=500, detail="Erro ao carregar página do imóvel.")
+ 
     codigo = extract_property_code(html, site)
     
     if not codigo:
@@ -61,10 +95,15 @@ async def fetch_property_info(property_code: str):
         soup = BeautifulSoup(response.text, "xml")
         property_info = soup.find("ListingID", string=property_code)
         if not property_info:
+            logging.warning(f"⚠️ Código do imóvel {property_code} não encontrado no XML.")
             raise HTTPException(status_code=404, detail="Imóvel não encontrado no XML.")
 
-        listing = property_info.find_parent("Listing")
-        contact_info = listing.find("ContactInfo")
+        listing = property_info.find_parent("Listing") if property_info else None
+        if not listing:
+            logging.warning(f"⚠️ Não foi possível encontrar detalhes do imóvel {property_code}.")
+            raise HTTPException(status_code=404, detail="Detalhes do imóvel não encontrados.")
+
+        contact_info = listing.find("ContactInfo") if listing else None
 
         realtor_name = contact_info.find("Name").text if contact_info and contact_info.find("Name") else "Não informado"
         realtor_email = contact_info.find("Email").text if contact_info and contact_info.find("Email") else "Não informado"
