@@ -117,7 +117,7 @@ async def fetch_property_info(property_code: str):
         realtor_phone = contact_info.find("Telephone").text if contact_info and contact_info.find("Telephone") else "Não informado"
 
         return {
-            "property_code": codigo,
+            "property_code": property_code,
             "realtor_name": realtor_name,
             "realtor_email": realtor_email,
             "realtor_phone": realtor_phone
