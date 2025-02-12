@@ -1,3 +1,4 @@
+import os
 import re
 import json
 import httpx
@@ -22,13 +23,17 @@ app.add_exception_handler(Exception, custom_exception_handler)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logging.info("API Iniciada!")
 
-# 🔄 Função para manter o servidor ativo
-@app.on_event("startup")
-async def keep_alive():
-    """Evita que o Render encerre o servidor por inatividade."""
+XML_URL = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afecd2c0b"
+
+# 🔄 Função para manter o servidor ativo no Render
+async def keep_alive_task():
     while True:
-        await asyncio.sleep(60)  # Aguarda 60 segundos
+        await asyncio.sleep(60)
         logging.info("💡 Keep-alive: Servidor ainda está rodando...")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(keep_alive_task())
 
 class LogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -46,15 +51,15 @@ class LogMiddleware(BaseHTTPMiddleware):
 
         # Criar uma cópia segura da resposta
         response_body = [chunk async for chunk in response.body_iterator]
-        response = Response(content=b"".join(response_body), status_code=response.status_code, headers=dict(response.headers), media_type=response.media_type)
+        response_bytes = b"".join(response_body)  # Garante que os bytes sejam unidos corretamente
+        response_content = response_bytes.decode()  # Decodifica os bytes para string
 
         try:
-            response_content = response.body.decode()
             logging.info(f"✅ RESPOSTA: {response.status_code} - {response_content}")
         except Exception as e:
             logging.warning(f"⚠️ Erro ao capturar a resposta: {e}")
 
-        return response
+        return Response(content=response_bytes, status_code=response.status_code, headers=dict(response.headers), media_type=response.media_type)
 
 # Adiciona o middleware na API
 app.add_middleware(LogMiddleware)
@@ -98,50 +103,57 @@ async def extract_code(url: str, site: str):
     logging.info(f"✅ Código do imóvel extraído: {codigo}")
     return {"codigo_imovel": codigo}
 
-async def process_fetch_xml(property_code: str):
-    """Processa a requisição ao XML e envia os dados para o webhook."""
-    logging.info(f"📡 Buscando informações do imóvel no XML para código {property_code}...")
-
-    xml_url = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afecd2c0b"
-    
+# 🔍 Função auxiliar para buscar detalhes no XML
+async def get_property_info(property_code: str):
+    """Busca os detalhes do imóvel no XML usando o código extraído."""
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(xml_url, timeout=15)
+            response = await client.get(XML_URL, timeout=10)
             response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "xml")
         property_info = soup.find("ListingID", string=property_code)
 
         if not property_info:
-            logging.warning(f"⚠️ Código do imóvel {property_code} não encontrado no XML.")
-            return
+            raise HTTPException(status_code=404, detail="Imóvel não encontrado no XML.")
 
-        listing = property_info.find_parent("Listing") if property_info else None
-        contact_info = listing.find("ContactInfo") if listing else None
-
-        realtor_name = contact_info.find("Name").text if contact_info and contact_info.find("Name") else "Não informado"
-        realtor_email = contact_info.find("Email").text if contact_info and contact_info.find("Email") else "Não informado"
-        realtor_phone = contact_info.find("Telephone").text if contact_info and contact_info.find("Telephone") else "Não informado"
-
-        logging.info(f"🏡 Dados do imóvel encontrados: {realtor_name}, {realtor_email}, {realtor_phone}")
-
-        # 🔹 Envia os dados para o webhook do BotConversa
-        webhook_url = "https://backend.botconversa.com.br/api/v1/webhook"  # Substituir pela URL correta do webhook
-        await client.post(webhook_url, json={
-            "property_code": property_code,
-            "realtor_name": realtor_name,
-            "realtor_email": realtor_email,
-            "realtor_phone": realtor_phone
-        })
+        listing = property_info.find_parent("Listing")
+        return listing.find("ContactInfo") if listing else None
 
     except httpx.HTTPStatusError as e:
-        logging.error(f"❌ Erro HTTP ao acessar XML: {e}")
+        logging.error(f"Erro HTTP ao acessar XML: {e}")
+        raise HTTPException(status_code=e.response.status_code, detail="Erro ao acessar XML.")
     except Exception as e:
-        logging.exception(f"🔥 Erro ao buscar XML: {e}")
+        logging.exception(f"Erro ao buscar XML: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao processar XML.")
 
-@app.get("/fetch-xml/")
-async def fetch_property_info(property_code: str):
-    """Processa imediatamente para evitar que o servidor desligue antes de completar."""
-    logging.info(f"🔄 Processando XML para {property_code}...")
-    await process_fetch_xml(property_code)  # Aguarda a função terminar antes de responder
-    return {"status": "completed", "property_code": property_code}
+# 🔹 Endpoints separados para obter dados individuais
+@app.get("/fetch-realtor-name/")
+async def fetch_realtor_name(property_code: str):
+    """Retorna apenas o nome da imobiliária."""
+    contact_info = await get_property_info(property_code)
+    if not contact_info:
+        raise HTTPException(status_code=404, detail="Detalhes do imóvel não encontrados.")
+
+    realtor_name = contact_info.find("Name").text if contact_info.find("Name") else "Não informado"
+    return {"property_code": property_code, "realtor_name": realtor_name}
+
+@app.get("/fetch-realtor-email/")
+async def fetch_realtor_email(property_code: str):
+    """Retorna apenas o e-mail da imobiliária."""
+    contact_info = await get_property_info(property_code)
+    if not contact_info:
+        raise HTTPException(status_code=404, detail="Detalhes do imóvel não encontrados.")
+
+    realtor_email = contact_info.find("Email").text if contact_info.find("Email") else "Não informado"
+    return {"property_code": property_code, "realtor_email": realtor_email}
+
+@app.get("/fetch-realtor-phone/")
+async def fetch_realtor_phone(property_code: str):
+    """Retorna apenas o telefone da imobiliária."""
+    contact_info = await get_property_info(property_code)
+    if not contact_info:
+        raise HTTPException(status_code=404, detail="Detalhes do imóvel não encontrados.")
+
+    realtor_phone = contact_info.find("Telephone").text if contact_info.find("Telephone") else "Não informado"
+    return {"property_code": property_code, "realtor_phone": realtor_phone}
