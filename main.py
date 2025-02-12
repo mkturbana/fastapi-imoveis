@@ -4,12 +4,12 @@ import httpx
 import logging
 from bs4 import BeautifulSoup
 from starlette.requests import Request
+from fastapi import BackgroundTasks
 from fastapi.responses import Response, JSONResponse
 from fetch import fetch_html_with_playwright
 from extractors import extract_property_code
 from fastapi import FastAPI, HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp, Receive, Scope, Send
 from exceptions import http_exception_handler, custom_exception_handler
 
 app = FastAPI()
@@ -90,41 +90,38 @@ async def extract_code(url: str, site: str):
 
     return {"codigo_imovel": codigo}
 
-@app.get("/fetch-xml/")
-async def fetch_property_info(property_code: str):
-    """Busca informações do imóvel no XML usando o código extraído."""
+async def process_fetch_xml(property_code: str):
+    """Faz a requisição demorada em segundo plano e envia os dados depois."""
     xml_url = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afecd2c0b"
-    
-    try:
-        response = httpx.get(xml_url, timeout=10)
-        response.raise_for_status()  # Garante que erros HTTP sejam tratados corretamente
 
-        soup = BeautifulSoup(response.text, "xml")
-        property_info = soup.find("ListingID", string=property_code)
-        if not property_info:
-            logging.warning(f"⚠️ Código do imóvel {property_code} não encontrado no XML.")
-            raise HTTPException(status_code=404, detail="Imóvel não encontrado no XML.")
+    async with httpx.AsyncClient() as client:
+        response = await client.get(xml_url, timeout=15)
+        response.raise_for_status()
 
-        listing = property_info.find_parent("Listing") if property_info else None
-        if not listing:
-            logging.warning(f"⚠️ Não foi possível encontrar detalhes do imóvel {property_code}.")
-            raise HTTPException(status_code=404, detail="Detalhes do imóvel não encontrados.")
+    soup = BeautifulSoup(response.text, "xml")
+    property_info = soup.find("ListingID", string=property_code)
 
+    if property_info:
+        listing = property_info.find_parent("Listing")
         contact_info = listing.find("ContactInfo") if listing else None
 
         realtor_name = contact_info.find("Name").text if contact_info and contact_info.find("Name") else "Não informado"
         realtor_email = contact_info.find("Email").text if contact_info and contact_info.find("Email") else "Não informado"
         realtor_phone = contact_info.find("Telephone").text if contact_info and contact_info.find("Telephone") else "Não informado"
 
-        return {
-            "realtor_name": realtor_name,
-            "realtor_email": realtor_email,
-            "realtor_phone": realtor_phone
-        }
+        # 🔹 Envia os dados para um webhook do BotConversa
+        webhook_url = "https://botconversa.com/webhook"  # Altere para a URL correta
+        
+        async with httpx.AsyncClient() as client:
+            await client.post(webhook_url, json={
+                "property_code": property_code,
+                "realtor_name": realtor_name,
+                "realtor_email": realtor_email,
+                "realtor_phone": realtor_phone
+            })
 
-    except httpx.HTTPStatusError as e:
-        logging.error(f"Erro HTTP ao acessar XML: {e}")
-        raise HTTPException(status_code=e.response.status_code, detail="Erro ao acessar XML.")
-    except Exception as e:
-        logging.exception(f"Erro ao buscar XML: {e}")
-        raise HTTPException(status_code=500, detail="Erro interno ao processar XML.")
+@app.get("/fetch-xml/")
+async def fetch_property_info(property_code: str, background_tasks: BackgroundTasks):
+    """Inicia a busca do XML em segundo plano e retorna imediatamente."""
+    background_tasks.add_task(process_fetch_xml, property_code)
+    return {"status": "processing", "property_code": property_code}
