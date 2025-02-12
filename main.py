@@ -2,14 +2,15 @@ import re
 import json
 import httpx
 import logging
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
-from starlette.requests import Request
-from starlette.middleware.base import BaseHTTPMiddleware
 from bs4 import BeautifulSoup
-from exceptions import http_exception_handler, custom_exception_handler
+from starlette.requests import Request
+from fastapi.responses import Response, JSONResponse
 from fetch import fetch_html_with_playwright
 from extractors import extract_property_code
+from fastapi import FastAPI, HTTPException, Request
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
+from exceptions import http_exception_handler, custom_exception_handler
 
 app = FastAPI()
 
@@ -33,13 +34,15 @@ class LogMiddleware(BaseHTTPMiddleware):
 
         # Processar a requisição
         response = await call_next(request)
-        
+
         # Criar uma cópia segura da resposta
-        response_body = b"".join([chunk async for chunk in response.body_iterator])
-        response.body_iterator = iter([response_body])
+        response_body = [chunk async for chunk in response.body_iterator]
+        
+        # Criar um novo Response com o mesmo conteúdo
+        response = Response(content=b"".join(response_body), status_code=response.status_code, headers=dict(response.headers), media_type=response.media_type)
 
         try:
-            response_content = response_body.decode()
+            response_content = response.body.decode()
             logging.info(f"✅ RESPOSTA: {response.status_code} - {response_content}")
         except Exception as e:
             logging.warning(f"⚠️ Erro ao capturar a resposta: {e}")
