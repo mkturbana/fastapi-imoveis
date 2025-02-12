@@ -54,6 +54,10 @@ app.add_middleware(LogMiddleware)
 
 # ------------------------------------------------------------------------------
 
+@app.get("/")
+async def root():
+    return {"message": "API de Imóveis está online! 🚀"}
+
 @app.post("/extract-url/")
 async def extract_url_from_message(message: str):
     """Extrai uma URL de uma mensagem enviada pelo usuário."""
