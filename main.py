@@ -110,7 +110,7 @@ async def process_fetch_xml(property_code: str):
         realtor_phone = contact_info.find("Telephone").text if contact_info and contact_info.find("Telephone") else "Não informado"
 
         # 🔹 Envia os dados para um webhook do BotConversa
-        webhook_url = "https://botconversa.com/webhook"  # Altere para a URL correta
+        webhook_url = "b5fd35dc-ffff-4e95-a0c6-4e264f41e8bd"  # Altere para a URL correta
         
         async with httpx.AsyncClient() as client:
             await client.post(webhook_url, json={
