@@ -1,5 +1,6 @@
 import os
 import logging
+import async
 from playwright.async_api import async_playwright
 from playwright_stealth import stealth_async
 from fastapi import HTTPException
@@ -33,26 +34,24 @@ async def get_browser():
 
 SCRAPERAPI_KEY = "2448343edc77475cfabfa7643d45d9cc"
 
-async def fetch_html_with_playwright(url: str) -> str:
-    """Captura o HTML da página usando ScraperAPI para evitar bloqueios."""
-    scraper_url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={url}"
-    
-    browser = await get_browser()
-    page = await browser.new_page()
+async def fetch_html_with_playwright(url: str, timeout: int = 10000, max_retries: int = 3) -> str:
+    """Obtém o HTML de uma página usando Playwright com retries"""
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                context = await browser.new_context()
+                page = await context.new_page()
+                
+                await page.goto(url, timeout=timeout)
+                html = await page.content()
+                
+                await browser.close()
+                return html
+        
+        except Exception as e:
+            retry_count += 1
+            print(f"Erro ao carregar {url}. Tentativa {retry_count}/{max_retries}: {e}")
 
-    await stealth_async(page)
-
-    try:
-        logging.info(f"🔍 Acessando página via ScraperAPI: {scraper_url}")
-        await page.goto(scraper_url, wait_until="load", timeout=60000)
-        await page.wait_for_timeout(5000)
-
-        html = await page.content()
-        await page.close()
-        return html
-
-    except Exception as e:
-        logging.exception(f"❌ Erro ao carregar página: {e}")
-        await page.close()
-        raise HTTPException(status_code=500, detail=str(e))
-
+    raise Exception(f"Falha ao carregar a página {url} após {max_retries} tentativas.")
