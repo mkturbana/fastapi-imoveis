@@ -136,7 +136,7 @@ async def fetch_realtor_name(property_code: str):
         raise HTTPException(status_code=404, detail="Detalhes do imóvel não encontrados.")
 
     realtor_name = contact_info.find("Name").text if contact_info.find("Name") else "Não informado"
-    return {"property_code": property_code, "realtor_name": realtor_name}
+    return {"realtor_name": realtor_name}
 
 @app.get("/fetch-realtor-email/")
 async def fetch_realtor_email(property_code: str):
@@ -146,7 +146,7 @@ async def fetch_realtor_email(property_code: str):
         raise HTTPException(status_code=404, detail="Detalhes do imóvel não encontrados.")
 
     realtor_email = contact_info.find("Email").text if contact_info.find("Email") else "Não informado"
-    return {"property_code": property_code, "realtor_email": realtor_email}
+    return {"realtor_email": realtor_email}
 
 @app.get("/fetch-realtor-phone/")
 async def fetch_realtor_phone(property_code: str):
@@ -156,4 +156,4 @@ async def fetch_realtor_phone(property_code: str):
         raise HTTPException(status_code=404, detail="Detalhes do imóvel não encontrados.")
 
     realtor_phone = contact_info.find("Telephone").text if contact_info.find("Telephone") else "Não informado"
-    return {"property_code": property_code, "realtor_phone": realtor_phone}
+    return {"realtor_phone": realtor_phone}
