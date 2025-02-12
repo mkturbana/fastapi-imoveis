@@ -9,5 +9,7 @@ pip install -r requirements.txt
 echo "🛠 Instalando Playwright..."
 pip install playwright
 
+pip install --upgrade pip
+
 echo "🌍 Baixando navegadores Playwright..."
 PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium
