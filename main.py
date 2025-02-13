@@ -105,24 +105,13 @@ async def extract_code(url: str, site: str):
 
     logging.info(f"🔍 Extraindo código do imóvel para URL: {url} | Site: {site}")
 
-    # 🔹 1. Tentar extrair diretamente da URL sem abrir a página
-    match = re.search(r"id-(\d+)", url)
-    if match:
-        codigo_imovel = match.group(1)
-        logging.info(f"✅ Código extraído diretamente da URL: {codigo_imovel}")
-        return {"codigo_imovel": codigo_imovel}
-
-    # 🔹 2. Se não conseguir, usa o Playwright (última opção)
-    try:
         html = await fetch_html_with_playwright(url)
         codigo = extract_property_code(html, site)
+    
+        if not codigo:
+            raise HTTPException(status_code=404, detail="Código do imóvel não encontrado.")
 
-        if codigo:
-            logging.info(f"✅ Código extraído via Playwright: {codigo}")
-            return {"codigo_imovel": codigo}
-
-        logging.warning(f"⚠️ Código não encontrado no HTML.")
-        raise HTTPException(status_code=404, detail="Código do imóvel não encontrado.")
+        return {"codigo_imovel": codigo}
 
     except Exception as e:
         logging.error(f"❌ Erro ao extrair código: {e}")
