@@ -18,6 +18,7 @@ from cachetools import TTLCache
 from exceptions import http_exception_handler, custom_exception_handler
 
 app = FastAPI()
+VERIFY_TOKEN = token-bothub-redeurbana#2025
 
 # Configuração dos handlers de erro
 app.add_exception_handler(HTTPException, http_exception_handler)
