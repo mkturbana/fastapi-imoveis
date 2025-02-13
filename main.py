@@ -5,6 +5,7 @@ import httpx
 import logging
 import asyncio
 import aiohttp
+import uuid
 from bs4 import BeautifulSoup
 from starlette.requests import Request
 from fastapi.responses import Response, JSONResponse
@@ -12,6 +13,7 @@ from fetch import fetch_html_with_playwright
 from extractors import extract_property_code
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, Depends
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 from exceptions import http_exception_handler, custom_exception_handler
 from cachetools import TTLCache
@@ -29,6 +31,9 @@ XML_URL = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afe
 
 # Cache para armazenar o XML por 60 segundos
 xml_cache = TTLCache(maxsize=1, ttl=60)
+
+# 🔄 Dicionário para armazenar os resultados temporários do Playwright
+extract_results = {}
 
 # 🔄 Função para manter o servidor ativo no Render
 async def keep_alive_task():
@@ -91,22 +96,46 @@ async def detect_site(url: str):
         return {"site_detectado": match.group(1)}
     raise HTTPException(status_code=400, detail="URL inválida.")
 
-@app.get("/extract-code/")
-async def extract_code(url: str, site: str):
-    """Extrai o código do imóvel de acordo com o site informado."""
-    logging.info(f"🔍 Extraindo código do imóvel para URL: {url} | Site: {site}")
-    html = await fetch_html_with_playwright(url)
-    
-    if not html:
-        raise HTTPException(status_code=500, detail="Erro ao carregar página do imóvel.")
- 
-    codigo = extract_property_code(html, site)
-    
-    if not codigo:
-        raise HTTPException(status_code=404, detail="Código do imóvel não encontrado.")
+@app.get("/start-extract/")
+async def start_extract(url: str, site: str, background_tasks: BackgroundTasks):
+    """Inicia a extração do código do imóvel e retorna um task_id para buscar o resultado depois."""
+    task_id = str(uuid.uuid4())  # Gera um ID único para a tarefa
+    extract_results[task_id] = {"status": "processing", "codigo_imovel": None}  # Define status inicial
 
-    logging.info(f"✅ Código do imóvel extraído: {codigo}")
-    return {"codigo_imovel": codigo}
+    # Inicia a extração em segundo plano
+    background_tasks.add_task(extract_code_async, url, site, task_id)
+
+    return {"task_id": task_id}
+
+async def extract_code_async(url: str, site: str, task_id: str):
+    """Executa a extração do código do imóvel em background e salva o resultado."""
+    logging.info(f"🔍 [Tarefa {task_id}] Extraindo código do imóvel para URL: {url} | Site: {site}")
+
+    try:
+        html = await fetch_html_with_playwright(url)  # Chama o Playwright
+        codigo = extract_property_code(html, site)
+
+        if codigo:
+            extract_results[task_id] = {"status": "completed", "codigo_imovel": codigo}
+            logging.info(f"✅ [Tarefa {task_id}] Código extraído: {codigo}")
+        else:
+            extract_results[task_id] = {"status": "error", "codigo_imovel": None}
+            logging.warning(f"⚠️ [Tarefa {task_id}] Código não encontrado.")
+
+    except Exception as e:
+        extract_results[task_id] = {"status": "error", "codigo_imovel": None}
+        logging.error(f"❌ [Tarefa {task_id}] Erro ao extrair código: {e}")
+
+# 🔹 Endpoint para buscar o resultado da extração
+@app.get("/get-extract-result/")
+async def get_extract_result(task_id: str):
+    """Retorna o status e o código do imóvel extraído."""
+    result = extract_results.get(task_id)
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada.")
+
+    return result
 
 # 🔍 Função auxiliar para buscar detalhes no XML com cache
 async def fetch_xml_data():
