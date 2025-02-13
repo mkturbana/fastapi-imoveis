@@ -18,7 +18,21 @@ from cachetools import TTLCache
 from exceptions import http_exception_handler, custom_exception_handler
 
 app = FastAPI()
-VERIFY_TOKEN = token-bothub-redeurbana#2025
+
+# Pega o Verify Token do ambiente
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "token-bothub-redeurbana#2025")
+
+@app.get("/webhook")
+async def verify_webhook(request: Request):
+    """Verifica a assinatura do webhook no WhatsApp API."""
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+
+    if mode == "subscribe" and token == VERIFY_TOKEN:
+        return int(challenge)  # Responde com o desafio para validar
+    else:
+        return {"error": "Token inválido"}, 403 
 
 # Configuração dos handlers de erro
 app.add_exception_handler(HTTPException, http_exception_handler)
