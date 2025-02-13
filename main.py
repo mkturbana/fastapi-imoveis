@@ -114,9 +114,9 @@ async def extract_code(url: str, site: str):
 
         return {"codigo_imovel": codigo}
 
-     except Exception as e:
-         logging.error(f"❌ Erro ao extrair código: {e}")
-         raise HTTPException(status_code=500, detail="Erro ao processar a requisição.")
+    except Exception as e:
+        logging.error(f"❌ Erro ao extrair código: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao processar a requisição.")
 
 # 🔍 Função auxiliar para buscar detalhes no XML com cache
 async def fetch_xml_data():
