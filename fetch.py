@@ -30,11 +30,30 @@ async def get_browser():
 async def fetch_html_with_playwright(url: str) -> str:
     """Fetch HTML content using Playwright and ScraperAPI."""
     scraper_url = f"https://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={url}"
-    browser = await get_browser()
 
-    # Reuse a single page instance
-    page = await browser.new_page()
-    await stealth_async(page)
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True,
+            args=[
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-background-timer-throttling",
+                "--disable-backgrounding-occluded-windows",
+                "--disable-renderer-backgrounding"
+            ]
+        )
+        context = await browser.new_context()
+
+        # Bloquear carregamento de imagens, fontes e CSS para acelerar
+        async def block_unwanted_resources(route):
+            if route.request.resource_type in ["image", "stylesheet", "font", "media"]:
+                await route.abort()
+            else:
+                await route.continue_()
+
+        page = await context.new_page()
+        await page.route("**/*", block_unwanted_resources)
 
     try:
         logging.info(f"Accessing page via ScraperAPI: {scraper_url}")
@@ -48,6 +67,7 @@ async def fetch_html_with_playwright(url: str) -> str:
 
     finally:
         await page.close()
+        await browser.close()
 
 async def fetch_multiple_urls(urls):
     """Fetch multiple URLs concurrently."""
