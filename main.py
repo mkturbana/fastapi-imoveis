@@ -58,14 +58,20 @@ class LogMiddleware(BaseHTTPMiddleware):
         # Processar a requisição
         response = await call_next(request)
 
-        # Criar uma cópia segura da resposta
-        response_body = await response.body()
+        # Criar uma cópia segura da resposta (para lidar com _StreamingResponse)
+        response_body = b"".join([chunk async for chunk in response.body_iterator])
+
         try:
             logging.info(f"✅ RESPOSTA: {response.status_code} - {response_body.decode()}")
         except Exception as e:
             logging.warning(f"⚠️ Erro ao capturar a resposta: {e}")
 
-        return Response(content=response_body, status_code=response.status_code, headers=dict(response.headers), media_type=response.media_type)
+        return Response(
+            content=response_body,
+            status_code=response.status_code,
+            headers=dict(response.headers),
+            media_type=response.media_type,
+        )
 
 # Adiciona o middleware na API
 app.add_middleware(LogMiddleware)
