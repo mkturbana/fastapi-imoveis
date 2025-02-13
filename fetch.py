@@ -56,8 +56,9 @@ async def fetch_html_with_playwright(url: str) -> str:
         await page.route("**/*", block_unwanted_resources)
 
     try:
-        logging.info(f"Accessing page via ScraperAPI: {scraper_url}")
-        await page.goto(scraper_url, wait_until="domcontentloaded", timeout=30000)
+        logging.info(f"🔍 Acessando página via ScraperAPI: {scraper_url}")
+        await page.goto(scraper_url, wait_until="domcontentloaded", timeout=10000)  # Timeout reduzido para 10s
+        await page.wait_for_load_state("domcontentloaded")  # Aguarda a página carregar completamente
         html = await page.content()
         return html
 
