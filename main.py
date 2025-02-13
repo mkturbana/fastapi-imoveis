@@ -105,13 +105,13 @@ async def extract_code(url: str, site: str):
 
     logging.info(f"🔍 Extraindo código do imóvel para URL: {url} | Site: {site}")
 
-        html = await fetch_html_with_playwright(url)
-        codigo = extract_property_code(html, site)
+    html = await fetch_html_with_playwright(url)
+    codigo = extract_property_code(html, site)
     
-        if not codigo:
-            raise HTTPException(status_code=404, detail="Código do imóvel não encontrado.")
+    if not codigo:
+        raise HTTPException(status_code=404, detail="Código do imóvel não encontrado.")
 
-        return {"codigo_imovel": codigo}
+    return {"codigo_imovel": codigo}
 
     except Exception as e:
         logging.error(f"❌ Erro ao extrair código: {e}")
