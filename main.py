@@ -113,6 +113,7 @@ async def detect_site(url: str):
         return {"site_detectado": match.group(1)}
     raise HTTPException(status_code=400, detail="URL inválida.")
 
+# 🔹 Endpoint Único para extrair código do imóvel (Otimizado)
 @app.get("/extract-code/")
 async def extract_code(url: str, site: str):
     """Extrai o código do imóvel o mais rápido possível."""
@@ -131,3 +132,45 @@ async def extract_code(url: str, site: str):
     except Exception as e:
         logging.error(f"❌ Erro ao extrair código: {e}")
         raise HTTPException(status_code=500, detail="Erro ao processar a requisição.")
+
+# 🔍 Função auxiliar para buscar detalhes no XML com cache
+async def fetch_xml_data():
+    """Baixa o XML e armazena no cache para otimizar múltiplas chamadas."""
+    if "xml_data" in xml_cache:
+        return xml_cache.get("xml_data")
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(XML_URL, timeout=5) as response:
+                response.raise_for_status()
+                xml_data = await response.text()
+                xml_cache["xml_data"] = xml_data  # Salva no cache
+                return xml_data
+    except Exception as e:
+        logging.error(f"Erro ao baixar XML: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar XML.")
+
+async def get_property_info_optimized(property_code: str, xml_data: str):
+    """Busca os detalhes do imóvel no XML usando caching para melhor performance."""
+    soup = BeautifulSoup(xml_data, "xml")
+    property_info = soup.find("ListingID", string=property_code)
+
+    if not property_info:
+        raise HTTPException(status_code=404, detail="Imóvel não encontrado no XML.")
+
+    listing = property_info.find_parent("Listing")
+    return listing.find("ContactInfo") if listing else None
+
+# 🔹 Endpoint único para obter todas as informações do imóvel
+@app.get("/fetch-xml/")
+async def fetch_xml(property_code: str, xml_data: str = Depends(fetch_xml_data)):
+    """Retorna todas as informações da imobiliária em uma única requisição, usando cache para otimizar a resposta."""
+    contact_info = await get_property_info_optimized(property_code, xml_data)
+    if not contact_info:
+        raise HTTPException(status_code=404, detail="Detalhes do imóvel não encontrados.")
+
+    return {
+        "realtor_name": contact_info.find("Name").text if contact_info.find("Name") else "Não informado",
+        "realtor_email": contact_info.find("Email").text if contact_info.find("Email") else "Não informado",
+        "realtor_phone": contact_info.find("Telephone").text if contact_info.find("Telephone") else "Não informado",
+    }
