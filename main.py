@@ -18,7 +18,14 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from exceptions import http_exception_handler, custom_exception_handler
 from cachetools import TTLCache
 
-app = FastAPI()
+app = FastAPI(
+    title="Minha API de Imóveis",
+    description="Documentação da API gerada automaticamente pelo FastAPI.",
+    version="1.0",
+    openapi_url="/openapi.json",
+    docs_url="/",
+    redoc_url="/redoc"
+)
 
 # Configuração dos handlers de erro
 app.add_exception_handler(HTTPException, http_exception_handler)
