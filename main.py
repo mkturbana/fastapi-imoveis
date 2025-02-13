@@ -6,7 +6,6 @@ import logging
 import asyncio
 import aiohttp
 import uuid
-import requests
 from bs4 import BeautifulSoup
 from starlette.requests import Request
 from fastapi.responses import Response, JSONResponse
@@ -23,38 +22,17 @@ app = FastAPI()
 # Pega o Verify Token do ambiente
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "token-bothub-redeurbana#2025")
 
-async def extract_code(url: str, site: str):
-    """Simula a extração do código do imóvel"""
-    await asyncio.sleep(12)  # Simulando uma demora
-    return "19747954"  # Código de imóvel extraído
-
-async def send_message_to_botconversa(subscriber_id: str, codigo: str):
-    """Envia o código do imóvel ao BotConversa"""
-    botconversa_url = f"https://api.botconversa.com/subscriber/{subscriber_id}/send_message/"
-    headers = {"Authorization": "Bearer SEU_TOKEN_AQUI", "Content-Type": "application/json"}
-    payload = {"type": "text", "value": f"Código do imóvel: {codigo}"}
-
-    response = requests.post(botconversa_url, json=payload, headers=headers)
-    print("Resposta do BotConversa:", response.json())
-
-async def process_url(url: str, site: str, subscriber_id: str):
-    """Processa a URL do imóvel e envia a resposta ao BotConversa"""
-    codigo = await extract_code(url, site)
-    await send_message_to_botconversa(subscriber_id, codigo)
-
 @app.get("/webhook")
-async def receive_message(request: Request, background_tasks: BackgroundTasks):
-    """Recebe mensagens do BotConversa e inicia o processamento"""
-    payload = await request.json()
-    url = payload.get("url")
-    site = payload.get("site")
-    subscriber_id = payload.get("subscriber_id")
+async def verify_webhook(request: Request):
+    """Verifica a assinatura do webhook no WhatsApp API."""
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
 
-    # Adiciona o processamento em segundo plano (não trava a resposta)
-    background_tasks.add_task(process_url, url, site, subscriber_id)
-
-    # Responde rapidamente ao BotConversa para evitar timeout
-    return {"status": "processing", "message": "Processando sua solicitação"}
+    if mode == "subscribe" and token == VERIFY_TOKEN:
+        return int(challenge)  # Responde com o desafio para validar
+    else:
+        return {"error": "Token inválido"}, 403 
 
 # Configuração dos handlers de erro
 app.add_exception_handler(HTTPException, http_exception_handler)
