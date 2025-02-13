@@ -57,7 +57,7 @@ async def fetch_html_with_playwright(url: str) -> str:
 
         try:
             logging.info(f"🔍 Acessando página via ScraperAPI: {scraper_url}")
-            await page.goto(scraper_url, wait_until="networkidle", timeout=7000)
+            await page.goto(scraper_url, wait_until="networkidle", timeout=5000)  # Timeout reduzido para 7s
             await page.wait_for_load_state("networkidle")  # Garante que a página carregou
 
             # Mantém a página aberta por um curto tempo antes de capturar o HTML
