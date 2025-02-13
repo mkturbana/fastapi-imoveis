@@ -8,7 +8,7 @@ import aiohttp
 import uuid
 from bs4 import BeautifulSoup
 from starlette.requests import Request
-from fastapi.responses import Response, JSONResponse
+from fastapi.responses import Response, JSONResponse, RedirectResponse
 from fetch import fetch_html_with_playwright
 from extractors import extract_property_code
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, Depends
@@ -23,7 +23,7 @@ app = FastAPI(
     description="Documentação da API gerada automaticamente pelo FastAPI.",
     version="1.0",
     openapi_url="/openapi.json",
-    docs_url="/",
+    docs_url="/docs",
     redoc_url="/redoc"
 )
 
@@ -83,9 +83,10 @@ app.add_middleware(LogMiddleware)
 
 # ------------------------------------------------------------------------------
 
-@app.get("/")
-async def root():
-    return {"message": "API de Imóveis está online! 🚀"}
+@app.get("/", include_in_schema=False)
+async def redirect_to_docs():
+    """Redireciona automaticamente para a documentação do FastAPI."""
+    return RedirectResponse(url="/docs")
 
 @app.post("/extract-url/")
 async def extract_url_from_message(message: str):
