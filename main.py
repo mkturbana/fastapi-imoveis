@@ -5,6 +5,7 @@ import httpx
 import logging
 import asyncio
 import aiohttp
+import uuid
 from bs4 import BeautifulSoup
 from starlette.requests import Request
 from fastapi.responses import Response, JSONResponse
@@ -12,9 +13,9 @@ from fetch import fetch_html_with_playwright
 from extractors import extract_property_code
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, Depends
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp, Receive, Scope, Send
-from exceptions import http_exception_handler, custom_exception_handler
+from starlette.responses import Response
 from cachetools import TTLCache
+from exceptions import http_exception_handler, custom_exception_handler
 
 app = FastAPI()
 
@@ -29,6 +30,9 @@ XML_URL = "https://redeurbana.com.br/imoveis/rede/c6280d26-b925-405f-8aab-dd3afe
 
 # Cache para armazenar o XML por 60 segundos
 xml_cache = TTLCache(maxsize=1, ttl=60)
+
+# 🔄 Dicionário para armazenar os resultados temporários do Playwright
+extract_results = {}
 
 # 🔄 Função para manter o servidor ativo no Render
 async def keep_alive_task():
@@ -55,16 +59,13 @@ class LogMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
 
         # Criar uma cópia segura da resposta
-        response_body = [chunk async for chunk in response.body_iterator]
-        response_bytes = b"".join(response_body)  # Garante que os bytes sejam unidos corretamente
-        response_content = response_bytes.decode()  # Decodifica os bytes para string
-
+        response_body = await response.body()
         try:
-            logging.info(f"✅ RESPOSTA: {response.status_code} - {response_content}")
+            logging.info(f"✅ RESPOSTA: {response.status_code} - {response_body.decode()}")
         except Exception as e:
             logging.warning(f"⚠️ Erro ao capturar a resposta: {e}")
 
-        return Response(content=response_bytes, status_code=response.status_code, headers=dict(response.headers), media_type=response.media_type)
+        return Response(content=response_body, status_code=response.status_code, headers=dict(response.headers), media_type=response.media_type)
 
 # Adiciona o middleware na API
 app.add_middleware(LogMiddleware)
@@ -91,28 +92,41 @@ async def detect_site(url: str):
         return {"site_detectado": match.group(1)}
     raise HTTPException(status_code=400, detail="URL inválida.")
 
+# 🔹 Endpoint Único para extrair código do imóvel (Otimizado)
 @app.get("/extract-code/")
 async def extract_code(url: str, site: str):
-    """Extrai o código do imóvel de acordo com o site informado."""
+    """Extrai o código do imóvel o mais rápido possível."""
+
     logging.info(f"🔍 Extraindo código do imóvel para URL: {url} | Site: {site}")
-    html = await fetch_html_with_playwright(url)
-    
-    if not html:
-        raise HTTPException(status_code=500, detail="Erro ao carregar página do imóvel.")
- 
-    codigo = extract_property_code(html, site)
-    
-    if not codigo:
+
+    # 🔹 1. Tentar extrair diretamente da URL sem abrir a página
+    match = re.search(r"id-(\d+)", url)
+    if match:
+        codigo_imovel = match.group(1)
+        logging.info(f"✅ Código extraído diretamente da URL: {codigo_imovel}")
+        return {"codigo_imovel": codigo_imovel}
+
+    # 🔹 2. Se não conseguir, usa o Playwright (última opção)
+    try:
+        html = await fetch_html_with_playwright(url)
+        codigo = extract_property_code(html, site)
+
+        if codigo:
+            logging.info(f"✅ Código extraído via Playwright: {codigo}")
+            return {"codigo_imovel": codigo}
+
+        logging.warning(f"⚠️ Código não encontrado no HTML.")
         raise HTTPException(status_code=404, detail="Código do imóvel não encontrado.")
 
-    logging.info(f"✅ Código do imóvel extraído: {codigo}")
-    return {"codigo_imovel": codigo}
+    except Exception as e:
+        logging.error(f"❌ Erro ao extrair código: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao processar a requisição.")
 
 # 🔍 Função auxiliar para buscar detalhes no XML com cache
 async def fetch_xml_data():
     """Baixa o XML e armazena no cache para otimizar múltiplas chamadas."""
     if "xml_data" in xml_cache:
-        return xml_cache["xml_data"]
+        return xml_cache.get("xml_data")
 
     try:
         async with aiohttp.ClientSession() as session:
