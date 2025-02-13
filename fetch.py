@@ -55,20 +55,24 @@ async def fetch_html_with_playwright(url: str) -> str:
         page = await context.new_page()
         await page.route("**/*", block_unwanted_resources)
 
-    try:
-        logging.info(f"🔍 Acessando página via ScraperAPI: {scraper_url}")
-        await page.goto(scraper_url, wait_until="domcontentloaded", timeout=10000)  # Timeout reduzido para 10s
-        await page.wait_for_load_state("domcontentloaded")  # Aguarda a página carregar completamente
-        html = await page.content()
-        return html
+        try:
+            logging.info(f"🔍 Acessando página via ScraperAPI: {scraper_url}")
+            await page.goto(scraper_url, wait_until="domcontentloaded", timeout=7000)  # Timeout reduzido para 7s
+            await page.wait_for_load_state("domcontentloaded")  # Garante que a página carregou
 
-    except Exception as e:
-        logging.exception(f"Error loading page: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+            # Mantém a página aberta por um curto tempo antes de capturar o HTML
+            await asyncio.sleep(1)
 
-    finally:
-        await page.close()
-        await browser.close()
+            html = await page.content()
+            return html
+
+        except Exception as e:
+            logging.exception(f"Error loading page: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+        finally:
+            await page.close()
+            await browser.close()
 
 async def fetch_multiple_urls(urls):
     """Fetch multiple URLs concurrently."""
