@@ -114,6 +114,7 @@ async def detect_site(url: str):
     raise HTTPException(status_code=400, detail="URL inválida.")
 
 # 🔹 Endpoint Único para extrair código do imóvel (Otimizado)
+
 @app.get("/extract-code/")
 async def extract_code(url: str, site: str):
     """Extrai o código do imóvel o mais rápido possível."""
@@ -162,6 +163,19 @@ async def get_property_info_optimized(property_code: str, xml_data: str):
     return listing.find("ContactInfo") if listing else None
 
 # 🔹 Endpoint único para obter todas as informações do imóvel
+
+@app.post("/extract-buscacuritiba-code/")
+async def extract_buscacuritiba_code(message: str):
+    """
+    Endpoint para extrair o código do imóvel de uma mensagem do Portal Busca Curitiba.
+    """
+    codigo = extract_property_code_from_message(message)
+    
+    if not codigo:
+        raise HTTPException(status_code=400, detail="Código do imóvel não encontrado na mensagem.")
+
+    return {"codigo_imovel": codigo}
+
 @app.get("/fetch-xml/")
 async def fetch_xml(property_code: str, xml_data: str = Depends(fetch_xml_data)):
     """Retorna todas as informações da imobiliária em uma única requisição, usando cache para otimizar a resposta."""
