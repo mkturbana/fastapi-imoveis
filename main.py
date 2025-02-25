@@ -11,6 +11,7 @@ from starlette.requests import Request
 from fastapi.responses import Response, JSONResponse
 from fetch import fetch_html_with_playwright
 from extractors import extract_property_code
+from extractors import extract_property_code_from_message
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, Depends
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
