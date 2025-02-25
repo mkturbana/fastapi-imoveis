@@ -35,7 +35,7 @@ def extract_property_code_from_message(message: str):
 
     Retorna o código do imóvel se encontrado, ou None se não for encontrado.
     """
-    match = re.search(r"Referência:\s*([A-Za-z0-9-]+)", message, re.IGNORECASE)
+    match = re.search(r"Referência:\s*([A-Za-z0-9\-]+)", message, re.IGNORECASE)
     
     if match:
         return match.group(1)  # Retorna o código completo (exemplo: AP0237-C41)
