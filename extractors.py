@@ -30,4 +30,4 @@ def extract_property_code_from_message(message: str):
     if match:
         return match.group(1)  # Retorna o código completo (exemplo: AP0237-C41)
 
-    return None  # Retorna None se não encontrar nada
+    return "Código do imóvel não encontrado na mensagem"
