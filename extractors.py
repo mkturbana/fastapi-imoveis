@@ -19,16 +19,6 @@ def extract_property_code(html: str, site: str):
         match = re.search(r"ref:\s*do imóvel[:\s]*([\w-]+)", html, re.IGNORECASE)
         return match.group(1) if match else None
 
-    elif site == "buscacuritiba":
-        # 🔍 Procurar um <p> que contenha "Referência:"
-        reference_element = soup.find("p", string=re.compile("Referência:", re.IGNORECASE))
-        if reference_element:
-            # Extrair o texto do <p> e pegar apenas o código
-            match = re.search(r"Referência:\s*([\w-]+)", reference_element.text)
-            return match.group(1) if match else None
-
-    return None
-
 def extract_property_code_from_message(message: str):
     """
     Extrai o código do imóvel de uma mensagem do Portal Busca Curitiba.
