@@ -50,6 +50,16 @@ xml_cache = TTLCache(maxsize=1, ttl=60)
 # 🔄 Dicionário para armazenar os resultados temporários do Playwright
 extract_results = {}
 
+# 🔄 Função para manter o servidor ativo no Render
+async def keep_alive_task():
+    while True:
+        await asyncio.sleep(60)
+        logging.info("💡 Keep-alive: Servidor ainda está rodando...")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(keep_alive_task())
+
 class LogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         logging.info(f"🔹 RECEBENDO REQUISIÇÃO: {request.method} {request.url}")
@@ -165,7 +175,7 @@ async def extract_buscacuritiba_code(message: str):
     if not codigo:
         raise HTTPException(status_code=400, detail="Código do imóvel não encontrado na mensagem.")
 
-    return {"codigo_imovel": codigo}
+    return {codigo}
 
 @app.get("/fetch-xml/")
 async def fetch_xml(property_code: str, xml_data: str = Depends(fetch_xml_data)):
