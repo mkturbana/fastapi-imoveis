@@ -175,7 +175,7 @@ async def extract_buscacuritiba_code(message: str):
     if not codigo:
         raise HTTPException(status_code=400, detail="Código do imóvel não encontrado na mensagem.")
 
-    return {codigo}
+    return {"codigo": codigo}
 
 @app.get("/fetch-xml/")
 async def fetch_xml(property_code: str, xml_data: str = Depends(fetch_xml_data)):
