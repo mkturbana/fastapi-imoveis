@@ -135,6 +135,18 @@ async def extract_code(url: str, site: str):
         logging.error(f"❌ Erro ao extrair código: {e}")
         raise HTTPException(status_code=500, detail="Erro ao processar a requisição.")
 
+@app.post("/extract-buscacuritiba-code/")
+async def extract_buscacuritiba_code(message: str):
+    """
+    Endpoint para extrair o código do imóvel de uma mensagem do Portal Busca Curitiba.
+    """
+    codigo = extract_property_code_from_message(message)
+    
+    if not codigo:
+        raise HTTPException(status_code=400, detail="Código do imóvel não encontrado na mensagem.")
+
+    return codigo
+
 # 🔍 Função auxiliar para buscar detalhes no XML com cache
 async def fetch_xml_data():
     """Baixa o XML e armazena no cache para otimizar múltiplas chamadas."""
@@ -164,18 +176,6 @@ async def get_property_info_optimized(property_code: str, xml_data: str):
     return listing.find("ContactInfo") if listing else None
 
 # 🔹 Endpoint único para obter todas as informações do imóvel
-
-@app.post("/extract-buscacuritiba-code/")
-async def extract_buscacuritiba_code(message: str):
-    """
-    Endpoint para extrair o código do imóvel de uma mensagem do Portal Busca Curitiba.
-    """
-    codigo = extract_property_code_from_message(message)
-    
-    if not codigo:
-        raise HTTPException(status_code=400, detail="Código do imóvel não encontrado na mensagem.")
-
-    return {codigo}
 
 @app.get("/fetch-xml/")
 async def fetch_xml(property_code: str, xml_data: str = Depends(fetch_xml_data)):
