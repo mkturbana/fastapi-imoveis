@@ -117,7 +117,7 @@ async def detect_site(url: str):
 # 🔹 Endpoint Único para extrair código do imóvel (Otimizado)
 
 @app.get("/extract-code-html/")
-async def extract_property_code(url: str, site: str):
+async def extract_code_html_endpoint(url: str, site: str):
     """Extrai o código do imóvel o mais rápido possível."""
 
     logging.info(f"🔍 Extraindo código do imóvel para URL: {url} | Site: {site}")
@@ -136,7 +136,7 @@ async def extract_property_code(url: str, site: str):
         raise HTTPException(status_code=500, detail="Erro ao processar a requisição.")
 
 @app.post("/extract-code-message/")
-async def extract_property_code_from_message(message: str):
+async def extract_code_message_endpoint(message: str):
     """
     Endpoint para extrair o código do imóvel de uma mensagem do Portal Busca Curitiba.
     """
