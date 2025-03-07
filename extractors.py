@@ -21,7 +21,7 @@ def extract_property_code(html: str, site: str):
 
 def extract_property_code_from_message(message: str):
     """
-    Extrai o código do imóvel de uma mensagem do Portal Busca Curitiba.
+    Extrai o código do imóvel de uma mensagem sem link.
 
     Retorna o código do imóvel se encontrado, ou None se não for encontrado.
     """
