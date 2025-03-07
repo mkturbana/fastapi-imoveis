@@ -136,7 +136,7 @@ async def extract_property_code(url: str, site: str):
         raise HTTPException(status_code=500, detail="Erro ao processar a requisição.")
 
 @app.post("/extract-code-message/")
-async def extract_buscacuritiba_code(message: str):
+async def extract_property_code_from_message(message: str):
     """
     Endpoint para extrair o código do imóvel de uma mensagem do Portal Busca Curitiba.
     """
