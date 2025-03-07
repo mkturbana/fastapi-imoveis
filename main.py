@@ -117,7 +117,7 @@ async def detect_site(url: str):
 # 🔹 Endpoint Único para extrair código do imóvel (Otimizado)
 
 @app.get("/extract-code-html/")
-async def extract_code(url: str, site: str):
+async def extract_property_code(url: str, site: str):
     """Extrai o código do imóvel o mais rápido possível."""
 
     logging.info(f"🔍 Extraindo código do imóvel para URL: {url} | Site: {site}")
