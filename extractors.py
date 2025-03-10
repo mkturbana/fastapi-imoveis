@@ -19,18 +19,17 @@ def extract_property_code(html: str, site: str):
         match = re.search(r"ref:\s*do imóvel[:\s]*([\w-]+)", html, re.IGNORECASE)
         return match.group(1) if match else None
 
-    elif site == "imovelpratico":
-        links = soup.find_all("a", href=lambda x: x and "/media/realty/" in x)
-        for link in links:
-            href = link.get("href", "")
-            # Captura tudo após "/media/realty/" até a próxima barra "/"
-            match = re.search(r"/media/realty/([^/]+)/", href)
+    elif site == "huburbana":
+        # 1) Acha o <span> cujo texto contenha "CÓDIGO:"
+        span = soup.find("span", string=lambda text: text and "CÓDIGO:" in text)
+        if span:
+            span_text = span.get_text(strip=True)  # Ex: "CÓDIGO: TE0023-IBRK"
+            # 2) Usa regex para capturar depois de "CÓDIGO:"
+            match = re.search(r"CÓDIGO:\s*([A-Za-z0-9-]+)", span_text, re.IGNORECASE)
             if match:
-                codigo = match.group(1)  # "AP0468-LGK"
-                return codigo  # Retorna o código imediatamente
-    
-                # Se passou pelo loop sem achar nada, retorne erro ou None
-                return "Código do imóvel não encontrado"
+                return match.group(1)  # "TE0023-IBRK"
+
+        return None
 
 def extract_property_code_from_message(message: str):
     """
