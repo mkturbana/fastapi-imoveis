@@ -32,13 +32,13 @@ def extract_property_code(html: str, site: str):
         return None
 
 def extract_property_code_from_message(message: str):
-    # 1) Tenta achar depois de "Referência:"
-    match_ref = re.search(r"Referência:\s*([A-Za-z0-9-]+)", message, re.IGNORECASE)
+    # 1) Tenta "Referência: ABC123-XYZ"
+    match_ref = re.search(r"(?i)Referência:\s*([A-Za-z0-9-]+)", message)
     if match_ref:
         return match_ref.group(1)
-
-    # 2) Se não tiver "Referência:", procura qualquer sequência de letras, dígitos e hífens
-    match_any = re.search(r"[A-Za-z0-9-]+", message)
+    
+    # 2) Se não achou, exige ao menos 1 letra e 1 dígito (e hífen opcional)
+    match_any = re.search(r"(?i)(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9-]+", message)
     if match_any:
         return match_any.group(0)
 
