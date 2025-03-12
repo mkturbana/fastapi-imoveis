@@ -136,6 +136,9 @@ async def extract_code_html_endpoint(url: str, site: str):
         raise HTTPException(status_code=500, detail="Erro ao processar a requisição.")
 
 @app.post("/extract-code-message/")
+
+logger = logging.getLogger(__name__)
+
 async def extract_code_message_endpoint(message: str = Query(...)):
     logger.info(f"Mensagem recebida: {message!r}")
     codigo = extract_property_code_from_message(message)
