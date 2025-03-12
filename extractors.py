@@ -32,8 +32,14 @@ def extract_property_code(html: str, site: str):
         return None
 
 def extract_property_code_from_message(message: str):
-    # Procura qualquer sequência de A-Z, 0-9 ou hífen com pelo menos 1 caractere
+    """
+    Extrai o código do imóvel de uma mensagem sem link.
+
+    Retorna o código do imóvel se encontrado, ou None se não for encontrado.
+    """
     match = re.search(r"[A-Za-z0-9-]+", message, re.IGNORECASE)
+    
     if match:
-        return match.group(0)  # Retorna a sequência encontrada
-    return None
+        return match.group(1)  # Retorna o código completo (exemplo: AP0237-C41)
+
+    return "Código do imóvel não encontrado na mensagem"
