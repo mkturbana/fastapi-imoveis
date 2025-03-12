@@ -32,10 +32,14 @@ def extract_property_code(html: str, site: str):
         return None
 
 def extract_property_code_from_message(message: str):
-    # Busca "Referência:" (com acento), seguido de espaços, e então
-    # captura letras, dígitos ou hífens (A-Za-z0-9-).
-    # O re.IGNORECASE permite que "Referência" seja maiúsculo ou minúsculo.
-    match = re.search(r"Referência:\s*([A-Za-z0-9-]+)", message, re.IGNORECASE)
-    if match:
-        return match.group(1)  # "AP0237-C41"
+    # 1) Tenta achar depois de "Referência:"
+    match_ref = re.search(r"Referência:\s*([A-Za-z0-9-]+)", message, re.IGNORECASE)
+    if match_ref:
+        return match_ref.group(1)
+
+    # 2) Se não tiver "Referência:", procura qualquer sequência de letras, dígitos e hífens
+    match_any = re.search(r"[A-Za-z0-9-]+", message)
+    if match_any:
+        return match_any.group(0)
+
     return None
