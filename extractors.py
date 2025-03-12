@@ -37,11 +37,10 @@ def extract_property_code_from_message(message: str):
     Se encontrar, retorna o código (ex.: AP0237-C41).
     Se não encontrar, retorna mensagem de erro.
     """
-    # (?:Referência:\s*)? significa "pode ter 'Referência:' seguido de espaços, ou não"
+    # (?:Referência:\s*)? significa que "Referência:" + espaços é opcional
     # ([A-Za-z0-9-]+) captura a sequência de letras, dígitos ou hífens
     match = re.search(r"(?:Referência:\s*)?([A-Za-z0-9-]+)", message, re.IGNORECASE)
-    
     if match:
         return match.group(1)
-    
+
     return "Código do imóvel não encontrado na mensagem"
