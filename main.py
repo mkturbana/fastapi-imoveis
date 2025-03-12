@@ -136,20 +136,15 @@ async def extract_code_html_endpoint(url: str, site: str):
         raise HTTPException(status_code=500, detail="Erro ao processar a requisição.")
 
 @app.post("/extract-code-message/")
-
-async def extract_code_message_endpoint(message: str = Query(...)):
-    logger.info(f"Mensagem recebida: {message!r}")
+async def extract_code_message_endpoint(message: str):
+    """
+    Endpoint para extrair o código do imóvel de uma mensagem do Portal Busca Curitiba.
+    """
     codigo = extract_property_code_from_message(message)
-    logger.info(f"Código extraído: {codigo!r}")
-
+    
     if not codigo:
-        logger.info("Não encontrou código. Levantando HTTP 400.")
-        raise HTTPException(
-            status_code=400,
-            detail="Código do imóvel não encontrado na mensagem."
-        )
+        raise HTTPException(status_code=400, detail="Código do imóvel não encontrado na mensagem.")
 
-    logger.info(f"Retornando código: {codigo}")
     return codigo
 
 # 🔍 Função auxiliar para buscar detalhes no XML com cache
