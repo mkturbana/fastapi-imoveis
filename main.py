@@ -106,6 +106,17 @@ async def extract_url_from_message(message: str):
         return {"url_extraida": match.group(0)}
     raise HTTPException(status_code=400, detail="Nenhuma URL encontrada na mensagem.")
 
+@app.post("/validate-url/")
+async def validate_url(url: str):
+    """
+    Recebe uma URL e verifica se ela é acessível via Playwright+ScraperAPI.
+    """
+    try:
+        html = await fetch_html_with_playwright(url)
+        return {"url": url, "status": "acessível", "tamanho_html": len(html)}
+    except HTTPException as e:
+        raise HTTPException(status_code=400, detail=f"Falha ao acessar a URL: {e.detail}")
+
 @app.get("/detect-site/")
 async def detect_site(url: str):
     """Detecta o site a partir da URL."""
