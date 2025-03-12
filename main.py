@@ -136,10 +136,7 @@ async def extract_code_html_endpoint(url: str, site: str):
         raise HTTPException(status_code=500, detail="Erro ao processar a requisição.")
 
 @app.post("/extract-code-message/")
-async def extract_code_message_endpoint(message: str):
-    """
-    Endpoint para extrair o código do imóvel de uma mensagem do Portal Busca Curitiba.
-    """
+async def extract_code_message_endpoint(message: str = Query(...)):
     codigo = extract_property_code_from_message(message)
     
     if not codigo:
