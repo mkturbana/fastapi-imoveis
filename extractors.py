@@ -33,7 +33,7 @@ def extract_property_code(html: str, site: str):
 
 def extract_property_code_from_message(message: str):
     # Procura qualquer sequência de A-Z, 0-9 ou hífen com pelo menos 1 caractere
-    match = re.search(r"[A-Za-z0-9-]+", message)
+    match = re.search(r"[A-Za-z0-9-]+", message, re.IGNORECASE)
     if match:
         return match.group(0)  # Retorna a sequência encontrada
     return None
