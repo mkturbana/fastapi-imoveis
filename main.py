@@ -69,8 +69,6 @@ async def periodic_xml_update():
 
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(keep_alive_task())
-    # Aqui você cria a tarefa de atualização periódica
     asyncio.create_task(periodic_xml_update())
 
 # 🔄 Dicionário para armazenar os resultados temporários do Playwright
@@ -79,8 +77,12 @@ extract_results = {}
 # 🔄 Função para manter o servidor ativo no Render
 async def keep_alive_task():
     while True:
-        await asyncio.sleep(60)
+        await asyncio.sleep(120)
         logging.info("💡 Keep-alive: Servidor ainda está rodando...")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(keep_alive_task())
 
 class LogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
