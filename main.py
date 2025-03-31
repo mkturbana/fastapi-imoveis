@@ -45,7 +45,7 @@ logging.info("API Iniciada!")
 XML_URL = "https://redeurbana.com.br/imoveis/publico/97b375b0-05d4-48f5-9aeb-e9a1cae78c90"
 
 # Cache para armazenar o XML por 60 segundos
-xml_cache = TTLCache(maxsize=1, ttl=60)
+xml_cache = TTLCache(maxsize=1, ttl=43200)
 
 # 🔄 Dicionário para armazenar os resultados temporários do Playwright
 extract_results = {}
