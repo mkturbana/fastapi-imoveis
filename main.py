@@ -67,13 +67,6 @@ async def periodic_xml_update():
         # Aguarda 12 horas (43200 segundos) antes de atualizar novamente
         await asyncio.sleep(43200)
 
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(periodic_xml_update())
-
-# 🔄 Dicionário para armazenar os resultados temporários do Playwright
-extract_results = {}
-
 # 🔄 Função para manter o servidor ativo no Render
 async def keep_alive_task():
     while True:
@@ -83,7 +76,8 @@ async def keep_alive_task():
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(keep_alive_task())
-
+    asyncio.create_task(periodic_xml_update())
+    
 class LogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         logging.info(f"🔹 RECEBENDO REQUISIÇÃO: {request.method} {request.url}")
