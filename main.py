@@ -50,14 +50,16 @@ xml_cache = TTLCache(maxsize=1, ttl=43200)
 async def update_xml_cache():
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(XML_URL, timeout=60) as response:
+            async with session.get(XML_URL, timeout=600) as response:
                 response.raise_for_status()
                 xml_data = await response.text()
                 xml_cache["xml_data"] = xml_data
                 logging.info("XML atualizado no cache.")
+                return xml_data
     except Exception as e:
         logging.error(f"Erro ao atualizar XML: {e}")
-        raise HTTPException(status_code=500, detail="Erro ao buscar XML.")
+        # Aqui você pode optar por retornar None ou lançar uma exceção
+        return None
 
 async def periodic_xml_update():
     while True:
@@ -167,19 +169,22 @@ async def extract_code_message_endpoint(message: str):
 
 # 🔍 Função auxiliar para buscar detalhes no XML com cache
 async def fetch_xml_data():
-    """Baixa o XML e armazena no cache para otimizar múltiplas chamadas."""
+    """Retorna o XML armazenado no cache. Se o cache estiver vazio, tenta buscar o XML diretamente com um timeout maior."""
     if "xml_data" in xml_cache:
         return xml_cache.get("xml_data")
 
+    # Se o cache estiver vazio, faz o fallback com timeout aumentado
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(XML_URL, timeout=5) as response:
+            # Timeout de 600 segundos (10 minutos) para a requisição direta
+            async with session.get(XML_URL, timeout=600) as response:
                 response.raise_for_status()
                 xml_data = await response.text()
-                xml_cache["xml_data"] = xml_data  # Salva no cache
+                xml_cache["xml_data"] = xml_data  # Atualiza o cache para futuras chamadas
+                logging.info("XML obtido via fallback e atualizado no cache.")
                 return xml_data
     except Exception as e:
-        logging.error(f"Erro ao baixar XML: {e}")
+        logging.error(f"Erro ao buscar XML no fallback: {e}")
         raise HTTPException(status_code=500, detail="Erro ao buscar XML.")
 
 async def get_property_info_optimized(property_code: str, xml_data: str):
@@ -194,7 +199,6 @@ async def get_property_info_optimized(property_code: str, xml_data: str):
     return listing.find("ContactInfo") if listing else None
 
 # 🔹 Endpoint único para obter todas as informações do imóvel
-
 @app.get("/fetch-xml/")
 async def fetch_xml(property_code: str, xml_data: str = Depends(fetch_xml_data)):
     """Retorna todas as informações da imobiliária em uma única requisição, usando cache para otimizar a resposta."""
