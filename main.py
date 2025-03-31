@@ -80,10 +80,6 @@ async def keep_alive_task():
         await asyncio.sleep(60)
         logging.info("💡 Keep-alive: Servidor ainda está rodando...")
 
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(keep_alive_task())
-
 class LogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         logging.info(f"🔹 RECEBENDO REQUISIÇÃO: {request.method} {request.url}")
