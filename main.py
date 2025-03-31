@@ -44,8 +44,32 @@ logging.info("API Iniciada!")
 
 XML_URL = "https://redeurbana.com.br/imoveis/publico/97b375b0-05d4-48f5-9aeb-e9a1cae78c90"
 
-# Cache para armazenar o XML por 60 segundos
+# Cache para armazenar o XML por 12 horas
 xml_cache = TTLCache(maxsize=1, ttl=43200)
+
+async def update_xml_cache():
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(XML_URL, timeout=60) as response:
+                response.raise_for_status()
+                xml_data = await response.text()
+                xml_cache["xml_data"] = xml_data
+                logging.info("XML atualizado no cache.")
+    except Exception as e:
+        logging.error(f"Erro ao atualizar XML: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar XML.")
+
+async def periodic_xml_update():
+    while True:
+        await update_xml_cache()
+        # Aguarda 12 horas (43200 segundos) antes de atualizar novamente
+        await asyncio.sleep(43200)
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(keep_alive_task())
+    # Aqui você cria a tarefa de atualização periódica
+    asyncio.create_task(periodic_xml_update())
 
 # 🔄 Dicionário para armazenar os resultados temporários do Playwright
 extract_results = {}
