@@ -37,7 +37,7 @@ xml_cache = TTLCache(maxsize=1, ttl=43200)  # 12 horas
 def seconds_until_next_update(update_times: list) -> float:
     """
     Recebe uma lista de horários (objetos datetime.time) e retorna os segundos até o próximo horário.
-    Exemplo: [datetime.time(14, 10), datetime.time(02, 10)]
+    Exemplo: [datetime.time(14, 10), datetime.time(2, 10)]
     """
     now = datetime.datetime.now()
     today = now.date()
@@ -77,7 +77,7 @@ async def update_xml_cache():
 # Função para agendar a atualização do cache em horários específicos (por exemplo, às 08:00 e às 20:00)
 async def scheduled_xml_update():
     # Atualiza o cache às 11:30 e às 23:30
-    update_times = [datetime.time(14, 10), datetime.time(02, 10)]
+    update_times = [datetime.time(14, 10), datetime.time(2, 10)]
     while True:
         delay = seconds_until_next_update(update_times)
         logging.info(f"Aguardando {delay/60:.2f} minutos para a próxima atualização do XML.")
