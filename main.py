@@ -5,49 +5,51 @@ import httpx
 import logging
 import asyncio
 import aiohttp
+import datetime
 import uuid
 from bs4 import BeautifulSoup
 from starlette.requests import Request
 from fastapi.responses import Response, JSONResponse
 from fetch import fetch_html_with_playwright
-from extractors import extract_property_code
-from extractors import extract_property_code_from_message
+from extractors import extract_property_code, extract_property_code_from_message
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, Depends, Query
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from cachetools import TTLCache
 from exceptions import http_exception_handler, custom_exception_handler
 
-app = FastAPI()
-
-# Pega o Verify Token do ambiente
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "token-bothub-redeurbana#2025")
-
-@app.get("/webhook")
-async def verify_webhook(request: Request):
-    """Verifica a assinatura do webhook no WhatsApp API."""
-    mode = request.query_params.get("hub.mode")
-    token = request.query_params.get("hub.verify_token")
-    challenge = request.query_params.get("hub.challenge")
-
-    if mode == "subscribe" and token == VERIFY_TOKEN:
-        return int(challenge)  # Responde com o desafio para validar
-    else:
-        return {"error": "Token inválido"}, 403 
-
-# Configuração dos handlers de erro
-app.add_exception_handler(HTTPException, http_exception_handler)
-app.add_exception_handler(Exception, custom_exception_handler)
-
+# ---------------------------------------------------
+# Configuração e variáveis globais
+# ---------------------------------------------------
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logging.info("API Iniciada!")
 
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "token-bothub-redeurbana#2025")
 XML_URL = "https://redeurbana.com.br/imoveis/publico/97b375b0-05d4-48f5-9aeb-e9a1cae78c90"
 
-# Cache para armazenar o XML por 12 horas
-xml_cache = TTLCache(maxsize=1, ttl=43200)
+# Cache para armazenar o XML por 12 horas (43200 segundos)
+xml_cache = TTLCache(maxsize=1, ttl=43200)  # 12 horas
+
+# ---------------------------------------------------
+# Funções auxiliares para atualização do XML
+# ---------------------------------------------------
+
+def seconds_until_next_update(update_times: list) -> float:
+    now = datetime.datetime.now()
+    today = now.date()
+    scheduled_times = [datetime.datetime.combine(today, datetime.time(hour=h)) for h in update_times]
+    future_times = [t for t in scheduled_times if t > now]
+    if future_times:
+        next_time = min(future_times)
+    else:
+        next_time = datetime.datetime.combine(today + datetime.timedelta(days=1), datetime.time(hour=update_times[0]))
+    return (next_time - now).total_seconds()
 
 async def update_xml_cache():
+    """
+    Faz a requisição para baixar o XML e atualiza o cache.
+    Timeout ajustado para 600 segundos para suportar XML lento.
+    """
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(XML_URL, timeout=600) as response:
@@ -61,23 +63,37 @@ async def update_xml_cache():
         # Aqui você pode optar por retornar None ou lançar uma exceção
         return None
 
-async def periodic_xml_update():
+# Função para agendar a atualização do cache em horários específicos (por exemplo, às 08:00 e às 20:00)
+async def scheduled_xml_update():
+    """
+    Atualiza o cache do XML em horários específicos, definidos na lista update_times.
+    Por exemplo, se update_times = [8, 20] o cache será atualizado às 08:00 e às 20:00.
+    """
+    update_times = [11, 30, 23,30]
     while True:
+        delay = seconds_until_next_update(update_times)
+        logging.info(f"Aguardando {delay/60:.2f} minutos para a próxima atualização do XML.")
+        await asyncio.sleep(delay)
         await update_xml_cache()
-        # Aguarda 12 horas (43200 segundos) antes de atualizar novamente
-        await asyncio.sleep(43200)
 
-# 🔄 Função para manter o servidor ativo no Render
+# ---------------------------------------------------
+# Função para manter o servidor ativo (Keep-Alive)
+# ---------------------------------------------------
 async def keep_alive_task():
     while True:
         await asyncio.sleep(120)
         logging.info("💡 Keep-alive: Servidor ainda está rodando...")
 
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(keep_alive_task())
-    asyncio.create_task(periodic_xml_update())
-    
+# ---------------------------------------------------
+# Criação da instância FastAPI e configuração
+# ---------------------------------------------------
+app = FastAPI()
+
+# Configuração dos handlers de erro
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(Exception, custom_exception_handler)
+
+# Middleware para log
 class LogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         logging.info(f"🔹 RECEBENDO REQUISIÇÃO: {request.method} {request.url}")
@@ -110,7 +126,21 @@ class LogMiddleware(BaseHTTPMiddleware):
 # Adiciona o middleware na API
 app.add_middleware(LogMiddleware)
 
-# ------------------------------------------------------------------------------
+# ---------------------------------------------------
+# Endpoints
+# ---------------------------------------------------
+
+@app.get("/webhook")
+async def verify_webhook(request: Request):
+    """Verifica a assinatura do webhook no WhatsApp API."""
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+
+    if mode == "subscribe" and token == VERIFY_TOKEN:
+        return int(challenge)  # Responde com o desafio para validar
+    else:
+        return {"error": "Token inválido"}, 403 
 
 @app.get("/")
 async def root():
@@ -209,3 +239,14 @@ async def fetch_xml(property_code: str, xml_data: str = Depends(fetch_xml_data))
         "realtor_email": contact_info.find("Email").text if contact_info.find("Email") else "Não informado",
         "realtor_phone": contact_info.find("Telephone").text if contact_info.find("Telephone") else "Não informado",
     }
+
+# ---------------------------------------------------
+# Evento de Startup (único) para iniciar tarefas de background
+# ---------------------------------------------------
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(keep_alive_task())
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(scheduled_xml_update())
