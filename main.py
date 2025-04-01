@@ -35,14 +35,25 @@ xml_cache = TTLCache(maxsize=1, ttl=43200)  # 12 horas
 # ---------------------------------------------------
 
 def seconds_until_next_update(update_times: list) -> float:
+    """
+    Recebe uma lista de horários (objetos datetime.time) e retorna os segundos até o próximo horário.
+    Exemplo: [datetime.time(11, 30), datetime.time(23, 30)]
+    """
     now = datetime.datetime.now()
     today = now.date()
-    scheduled_times = [datetime.datetime.combine(today, datetime.time(hour=h)) for h in update_times]
+    
+    # Combina cada objeto datetime.time com a data de hoje
+    scheduled_times = [datetime.datetime.combine(today, ut) for ut in update_times]
+    
+    # Filtra os horários que ainda não passaram hoje
     future_times = [t for t in scheduled_times if t > now]
+    
     if future_times:
         next_time = min(future_times)
     else:
-        next_time = datetime.datetime.combine(today + datetime.timedelta(days=1), datetime.time(hour=update_times[0]))
+        # Se todos os horários de hoje já passaram, o próximo será o primeiro do dia seguinte
+        next_time = datetime.datetime.combine(today + datetime.timedelta(days=1), update_times[0])
+    
     return (next_time - now).total_seconds()
 
 async def update_xml_cache():
