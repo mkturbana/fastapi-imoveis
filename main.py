@@ -76,10 +76,16 @@ async def update_xml_cache():
 
 # Função para agendar a atualização do cache em horários específicos (por exemplo, às 08:00 e às 20:00)
 async def scheduled_xml_update():
-    # Atualiza o cache às 11:30 e às 23:30
-    update_times = [datetime.time(14, 13), datetime.time(2, 30)]
+    # Defina os horários desejados para produção: 12 horas (43200 segundos)
+    production_delay = 43200  # 12 horas
+    # Se estiver em modo teste, use um delay menor, por exemplo, 60 segundos
+    test_delay = 60  # 1 minuto
+    
+    # Verifica se estamos em modo teste
+    test_mode = os.getenv("TEST_MODE", "false").lower() == "true"
+    delay = test_delay if test_mode else production_delay
+    
     while True:
-        delay = seconds_until_next_update(update_times)
         logging.info(f"Aguardando {delay/60:.2f} minutos para a próxima atualização do XML.")
         await asyncio.sleep(delay)
         await update_xml_cache()
