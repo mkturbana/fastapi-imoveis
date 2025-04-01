@@ -121,7 +121,9 @@ async def extract_url_from_message(message: str):
     """Extrai uma URL de uma mensagem enviada pelo usuário."""
     match = re.search(r"https?://[^\s]+", message)
     if match:
-        return {"url_extraida": match.group(0)}
+        # Remove barra(s) no final do URL, caso exista(m)
+        url_extracted = match.group(0).rstrip('/')
+        return {"url_extraida": url_extracted}
     raise HTTPException(status_code=400, detail="Nenhuma URL encontrada na mensagem.")
 
 @app.get("/detect-site/")
