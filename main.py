@@ -37,7 +37,7 @@ xml_cache = TTLCache(maxsize=1, ttl=43200)  # 12 horas
 def seconds_until_next_update(update_times: list) -> float:
     """
     Recebe uma lista de horários (objetos datetime.time) e retorna os segundos até o próximo horário.
-    Exemplo: [datetime.time(11, 30), datetime.time(23, 30)]
+    Exemplo: [datetime.time(11, 40), datetime.time(23, 40)]
     """
     now = datetime.datetime.now()
     today = now.date()
