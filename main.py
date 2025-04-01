@@ -78,9 +78,9 @@ async def update_xml_cache():
 async def scheduled_xml_update():
     """
     Atualiza o cache do XML em horários específicos, definidos na lista update_times.
-    Por exemplo, se update_times = [8, 20] o cache será atualizado às 08:00 e às 20:00.
+    Por exemplo, se update_times = [8, 20] o cache será atualizado às 11:40 e às 23:40.
     """
-    update_times = [11, 30, 23,30]
+    update_times = [11, 40, 23,40]
     while True:
         delay = seconds_until_next_update(update_times)
         logging.info(f"Aguardando {delay/60:.2f} minutos para a próxima atualização do XML.")
