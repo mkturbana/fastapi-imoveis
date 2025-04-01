@@ -78,12 +78,6 @@ async def update_xml_cache():
 async def scheduled_xml_update():
     # Defina os horários desejados para produção: 12 horas (43200 segundos)
     production_delay = 43200  # 12 horas
-    # Se estiver em modo teste, use um delay menor, por exemplo, 60 segundos
-    test_delay = 60  # 1 minuto
-    
-    # Verifica se estamos em modo teste
-    test_mode = os.getenv("TEST_MODE", "false").lower() == "true"
-    delay = test_delay if test_mode else production_delay
     
     while True:
         logging.info(f"Aguardando {delay/60:.2f} minutos para a próxima atualização do XML.")
